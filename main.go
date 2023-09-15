@@ -49,8 +49,8 @@ func init() {
 		setupLog.Error(err, "unable to register kyverno schema")
 	}
 
-	err2 := giantswarmExceptions.AddToScheme(scheme)
-	if err2 != nil {
+	err = giantswarmExceptions.AddToScheme(scheme)
+	if err != nil {
 		setupLog.Error(err, "unable to register giantswarm policy schema")
 	}
 
@@ -63,9 +63,11 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
-	destinationNamespace := ""
-	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8088", "The address the metric endpoint binds to.")
-	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8082", "The address the probe endpoint binds to.")
+	var destinationNamespace string
+	// Flags
+	flag.StringVar(&destinationNamespace, "destination-namespace", "", "The namespace where the PolicyExceptions will be created. Defaults to Drafts namespace.")
+	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
+	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")

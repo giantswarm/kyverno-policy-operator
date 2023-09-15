@@ -61,16 +61,9 @@ func (r *PolicyExceptionDraftReconciler) Reconcile(ctx context.Context, req ctrl
 	_ = r.Log.WithValues("policyexceptiondraft", req.NamespacedName)
 
 	var exceptionDraft giantswarmExceptions.PolicyExceptionDraft
-	background := true
+	background := false
 
 	if err := r.Get(ctx, req.NamespacedName, &exceptionDraft); err != nil {
-		// Check if the exception draft was deleted
-		// TODO use a finalizer here
-		if apierrors.IsNotFound(err) {
-			// Ignore
-			return ctrl.Result{}, nil
-		}
-
 		// Error fetching the report
 		log.Log.Error(err, "unable to fetch PolicyExceptionDraft")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
