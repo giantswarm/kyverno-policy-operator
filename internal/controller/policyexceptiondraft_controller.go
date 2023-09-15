@@ -91,10 +91,8 @@ func (r *PolicyExceptionDraftReconciler) Reconcile(ctx context.Context, req ctrl
 		}
 
 		// Also create Kyverno exception
-		// Template Kyverno exception
-		var policyException kyvernov2alpha1.PolicyException
 		// Translate GiantSwarm PolicyExceptionDraft to Kyverno's PolicyException schema
-		policyException = translateDraftToPolex(exceptionDraft)
+		policyException := translateDraftToPolex(exceptionDraft)
 		// Set namespace
 		policyException.Namespace = namespace
 		// Set name
