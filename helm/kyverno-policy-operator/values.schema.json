@@ -93,6 +93,14 @@
                 }
             }
         },
+        "policyOperator": {
+            "type": "object",
+            "properties": {
+                "destinationNamespace": {
+                    "type": "string"
+                }
+            }
+        },
         "psp": {
             "type": "object",
             "properties": {
