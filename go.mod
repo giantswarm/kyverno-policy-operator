@@ -3,12 +3,12 @@ module github.com/giantswarm/kyverno-policy-operator
 go 1.20
 
 require (
-	github.com/giantswarm/exception-recommender v0.0.0-20230914033530-158571377ce2
+	github.com/giantswarm/exception-recommender v0.0.0-20230915173943-4e62cdb03869
 	github.com/go-logr/logr v1.2.4
 	github.com/kyverno/kyverno v1.10.3
 	k8s.io/apimachinery v0.28.2
 	k8s.io/client-go v0.28.2
-	sigs.k8s.io/controller-runtime v0.15.1
+	sigs.k8s.io/controller-runtime v0.16.2
 )
 
 require (
@@ -68,7 +68,7 @@ require (
 	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20230906235100-ae4cac8b496c // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
-	github.com/buildkite/agent/v3 v3.54.0 // indirect
+	github.com/buildkite/agent/v3 v3.55.0 // indirect
 	github.com/buildkite/interpolate v0.0.0-20200526001904-07f35b4ae251 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/chrismellard/docker-credential-acr-env v0.0.0-20230304212654-82a0ddb27589 // indirect
@@ -79,7 +79,7 @@ require (
 	github.com/containerd/stargz-snapshotter/estargz v0.14.3 // indirect
 	github.com/coreos/go-oidc/v3 v3.6.0 // indirect
 	github.com/cyberphone/json-canonicalization v0.0.0-20230710064741-aa7fe85c7dbd // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/digitorus/pkcs7 v0.0.0-20230818184609-3a137a874352 // indirect
 	github.com/digitorus/timestamp v0.0.0-20230902153158-687734543647 // indirect
@@ -136,7 +136,7 @@ require (
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.4 // indirect
-	github.com/hashicorp/hcl v1.0.0 // indirect
+	github.com/hashicorp/hcl v1.0.1-vault-5 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/in-toto/in-toto-golang v0.9.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -153,7 +153,7 @@ require (
 	github.com/lestrrat-go/iter v1.0.2 // indirect
 	github.com/lestrrat-go/jwx/v2 v2.0.12 // indirect
 	github.com/lestrrat-go/option v1.0.1 // indirect
-	github.com/letsencrypt/boulder v0.0.0-20230913213451-6223acd98724 // indirect
+	github.com/letsencrypt/boulder v0.0.0-20230331213904-8c67769be400 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
@@ -173,7 +173,7 @@ require (
 	github.com/open-policy-agent/gatekeeper v0.0.0-20210824170141-dd97b8a7e966 // indirect
 	github.com/open-policy-agent/opa v0.56.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
-	github.com/opencontainers/image-spec v1.1.0-rc4 // indirect
+	github.com/opencontainers/image-spec v1.1.0-rc5 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/outcaste-io/ristretto v0.2.3 // indirect
 	github.com/pborman/uuid v1.2.1 // indirect
@@ -197,7 +197,7 @@ require (
 	github.com/sigstore/cosign/v2 v2.2.0 // indirect
 	github.com/sigstore/fulcio v1.4.0 // indirect
 	github.com/sigstore/k8s-manifest-sigstore v0.5.1 // indirect
-	github.com/sigstore/rekor v1.3.0 // indirect
+	github.com/sigstore/rekor v1.2.2 // indirect
 	github.com/sigstore/sigstore v1.7.3 // indirect
 	github.com/sigstore/timestamp-authority v1.1.2 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
@@ -234,7 +234,7 @@ require (
 	go.step.sm/crypto v0.35.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.25.0 // indirect
+	go.uber.org/zap v1.26.0 // indirect
 	go4.org/intern v0.0.0-20230525184215-6c62f75575cb // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20230525183740-e7c30c78aeb2 // indirect
 	golang.org/x/crypto v0.13.0 // indirect
@@ -250,12 +250,12 @@ require (
 	golang.org/x/tools v0.13.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
-	google.golang.org/api v0.140.0 // indirect
+	google.golang.org/api v0.141.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230913181813-007df8e322eb // indirect
-	google.golang.org/grpc v1.58.0 // indirect
+	google.golang.org/grpc v1.58.1 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
-	gopkg.in/DataDog/dd-trace-go.v1 v1.54.1 // indirect
+	gopkg.in/DataDog/dd-trace-go.v1 v1.55.0 // indirect
 	gopkg.in/go-jose/go-jose.v2 v2.6.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
