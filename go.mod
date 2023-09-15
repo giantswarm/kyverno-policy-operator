@@ -1,6 +1,6 @@
 module github.com/giantswarm/kyverno-policy-operator
 
-go 1.21
+go 1.20
 
 require (
 	github.com/giantswarm/exception-recommender v0.0.0-20230914033530-158571377ce2
