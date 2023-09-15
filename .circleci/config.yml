@@ -5,13 +5,60 @@ orbs:
 workflows:
   package-and-push-chart-on-tag:
     jobs:
+      - architect/go-build:
+          name: go-build
+          binary: kyverno-policy-operator
+          resource_class: large
+          filters:
+            tags:
+              only: /^v.*/
+
+      # - architect/push-to-docker:
+      #     context: "architect"
+      #     name: push-kyverno-policy-operator-to-docker
+      #     image: "docker.io/giantswarm/kyverno-policy-operator"
+      #     username_envar: "DOCKER_USERNAME"
+      #     password_envar: "DOCKER_PASSWORD"
+      #     requires:
+      #       - go-build
+      #     # Needed to trigger job also on git tag.
+      #     filters:
+      #       tags:
+      #         only: /^v.*/
+
+      - architect/push-to-docker:
+          context: "architect"
+          name: push-kyverno-policy-operator-to-quay
+          image: "quay.io/giantswarm/kyverno-policy-operator"
+          username_envar: "QUAY_USERNAME"
+          password_envar: "QUAY_PASSWORD"
+          requires:
+            - go-build
+          # Needed to trigger job also on git tag.
+          filters:
+            tags:
+              only: /^v.*/
+
+      # - architect/push-to-docker:
+      #     context: "architect"
+      #     name: push-kyverno-policy-operator-to-aliyun
+      #     image: "giantswarm-registry.cn-shanghai.cr.aliyuncs.com/giantswarm/kyverno-policy-operator"
+      #     username_envar: "ALIYUN_USERNAME"
+      #     password_envar: "ALIYUN_PASSWORD"
+      #     requires:
+      #       - go-build
+      #     # Needed to trigger job also on git tag.
+      #     filters:
+      #       tags:
+      #         only: /^v.*/
+
       - architect/push-to-app-catalog:
           context: "architect"
-          # executor: "app-build-suite" # uncomment this if you want automatic metadata generation and helm chart linting
-          name: "package and push {APP-NAME} chart"
+          executor: "app-build-suite"
+          name: "package and push kyverno-policy-operator chart"
           app_catalog: "giantswarm-playground-catalog"
           app_catalog_test: "giantswarm-playground-test-catalog"
-          chart: "{APP-NAME}"
+          chart: "kyverno-policy-operator"
           # Trigger job on git tag.
           filters:
             tags:
