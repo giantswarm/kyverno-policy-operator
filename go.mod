@@ -2,8 +2,6 @@ module github.com/giantswarm/kyverno-policy-operator
 
 go 1.21
 
-toolchain go1.21.0
-
 require (
 	github.com/giantswarm/exception-recommender v0.0.0-20230914033530-158571377ce2
 	github.com/go-logr/logr v1.2.4
