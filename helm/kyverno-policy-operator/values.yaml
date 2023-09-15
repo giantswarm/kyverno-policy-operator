@@ -57,3 +57,6 @@ resources:
   limits:
     cpu: 100m
     memory: 220Mi
+
+policyOperator:
+  destinationNamespace: ""

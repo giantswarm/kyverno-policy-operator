@@ -54,8 +54,8 @@ spec:
       - name: {{ include "resource.default.name" . }}
         image: "{{ .Values.image.registry }}/{{ .Values.image.name }}:{{ .Values.image.tag | default .Chart.Version }}"
         args:
-        {{- if .Values.recommender.destinationNamespace }}
-          - --destination-namespace={{ .Values.recommender.destinationNamespace }}
+        {{- if .Values.policyOperator.destinationNamespace }}
+          - --destination-namespace={{ .Values.policyOperator.destinationNamespace }}
         {{- end }}
         ports:
         - containerPort: 8080
