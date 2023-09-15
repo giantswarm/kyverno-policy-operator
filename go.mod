@@ -8,7 +8,7 @@ require (
 	github.com/kyverno/kyverno v1.10.3
 	k8s.io/apimachinery v0.28.2
 	k8s.io/client-go v0.28.2
-	sigs.k8s.io/controller-runtime v0.16.2
+	sigs.k8s.io/controller-runtime v0.15.1
 )
 
 require (
