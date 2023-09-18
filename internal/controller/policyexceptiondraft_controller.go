@@ -125,6 +125,16 @@ func (r *PolicyExceptionDraftReconciler) Reconcile(ctx context.Context, req ctrl
 
 		if err := r.Get(ctx, types.NamespacedName{Namespace: namespace, Name: exceptionDraft.Name}, &policyException); err != nil {
 			// Error fetching the report
+			if apierrors.IsNotFound(err) {
+				// If the PolEx doesn't exist, remove the reconciled label from the draft
+				delete(exceptionDraft.Labels, "kyverno-policy-operator/reconciled")
+				// Update Kubernetes object
+				if draftErr := r.Client.Update(ctx, &exceptionDraft, &client.UpdateOptions{}); draftErr != nil {
+					r.Log.Error(draftErr, "unable to update PolicyExceptionDraft")
+				}
+
+				return ctrl.Result{}, nil
+			}
 			log.Log.Error(err, "unable to fetch PolicyException")
 			return ctrl.Result{}, client.IgnoreNotFound(err)
 		}
