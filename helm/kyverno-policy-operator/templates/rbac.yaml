@@ -6,15 +6,16 @@ metadata:
     {{- include "labels.common" . | nindent 4 }}
 rules:
   - apiGroups:
-      - wgpolicyk8s.io
+      - kyverno.io
     resources:
-      - policyreports
+      - policyexceptions
     verbs:
       - get
       - list
       - watch
       - update
       - patch
+      - delete
   - apiGroups:
       - policy.giantswarm.io
     resources:
