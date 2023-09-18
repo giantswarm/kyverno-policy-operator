@@ -10,6 +10,7 @@ rules:
     resources:
       - policyexceptions
     verbs:
+      - create
       - get
       - list
       - watch
@@ -21,7 +22,6 @@ rules:
     resources:
       - policyexceptiondrafts
     verbs:
-      - create
       - get
       - list
       - watch
