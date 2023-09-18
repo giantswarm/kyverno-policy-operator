@@ -47,20 +47,12 @@ type PolicyExceptionDraftReconciler struct {
 //+kubebuilder:rbac:groups=policy.giantswarm.io.giantswarm.io,resources=policyexceptiondrafts/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=policy.giantswarm.io.giantswarm.io,resources=policyexceptiondrafts/finalizers,verbs=update
 
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the PolicyExceptionDraft object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.15.0/pkg/reconcile
 func (r *PolicyExceptionDraftReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 	_ = r.Log.WithValues("policyexceptiondraft", req.NamespacedName)
 
 	var exceptionDraft giantswarmExceptions.PolicyExceptionDraft
+	// This should be a flag
 	background := false
 
 	if err := r.Get(ctx, req.NamespacedName, &exceptionDraft); err != nil {
@@ -90,7 +82,7 @@ func (r *PolicyExceptionDraftReconciler) Reconcile(ctx context.Context, req ctrl
 			r.Log.Error(err, "unable to update PolicyExceptionDraft")
 		}
 
-		// Also create Kyverno exception
+		// Create Kyverno exception
 		// Translate GiantSwarm PolicyExceptionDraft to Kyverno's PolicyException schema
 		policyException := translateDraftToPolex(exceptionDraft)
 		// Set namespace
@@ -126,8 +118,9 @@ func (r *PolicyExceptionDraftReconciler) Reconcile(ctx context.Context, req ctrl
 		if err := r.Get(ctx, types.NamespacedName{Namespace: namespace, Name: exceptionDraft.Name}, &policyException); err != nil {
 			// Error fetching the report
 			if apierrors.IsNotFound(err) {
-				// If the PolEx doesn't exist, remove the reconciled label from the draft
+				// The PolEx doesn't exist, remove the reconciled label from the PolicyExceptionDraft to trigger recreation
 				delete(exceptionDraft.Labels, "kyverno-policy-operator/reconciled")
+
 				// Update Kubernetes object
 				if draftErr := r.Client.Update(ctx, &exceptionDraft, &client.UpdateOptions{}); draftErr != nil {
 					r.Log.Error(draftErr, "unable to update PolicyExceptionDraft")
@@ -140,7 +133,14 @@ func (r *PolicyExceptionDraftReconciler) Reconcile(ctx context.Context, req ctrl
 		}
 
 		// Set new exceptions
-		policyException.Spec.Exceptions = trasnlateExceptions(exceptionDraft.Spec.Exceptions)
+		newExceptions := translateExceptions(exceptionDraft.Spec.Exceptions)
+		if len(newExceptions) == len(policyException.Spec.Exceptions) {
+			// We can assume that if the lengths are the same, the exceptions have not changed, but this can be wrong.
+			// This log message is unnecesary, we can delete it after testing
+			r.Log.Info("Exceptions are the same, no need to update")
+			return ctrl.Result{}, nil
+		}
+		policyException.Spec.Exceptions = newExceptions
 		// Update Kubernetes object
 		if err := r.Client.Update(ctx, &policyException, &client.UpdateOptions{}); err != nil {
 			r.Log.Error(err, "unable to update PolicyException")
@@ -152,6 +152,7 @@ func (r *PolicyExceptionDraftReconciler) Reconcile(ctx context.Context, req ctrl
 	return ctrl.Result{}, nil
 }
 
+// translateDraftToPolex takes a Giant Swarm PolicyExceptionDraft object and transforms it into a Kyverno Policy Exception object
 func translateDraftToPolex(draft giantswarmExceptions.PolicyExceptionDraft) kyvernov2alpha1.PolicyException {
 	polex := kyvernov2alpha1.PolicyException{}
 
@@ -161,12 +162,13 @@ func translateDraftToPolex(draft giantswarmExceptions.PolicyExceptionDraft) kyve
 			Names:      draft.Spec.Match.Names,
 			Kinds:      draft.Spec.Match.Kinds,
 		}}}
-	polex.Spec.Exceptions = trasnlateExceptions(draft.Spec.Exceptions)
+	polex.Spec.Exceptions = translateExceptions(draft.Spec.Exceptions)
 
 	return polex
 }
 
-func trasnlateExceptions(exceptions []giantswarmExceptions.Exception) []kyvernov2alpha1.Exception {
+// translateExceptions takes a Giant Swarm Exception array and transforms it into a Kyverno Exception array
+func translateExceptions(exceptions []giantswarmExceptions.Exception) []kyvernov2alpha1.Exception {
 	var kyvernoExceptions []kyvernov2alpha1.Exception
 	for _, exception := range exceptions {
 		kyvernoExceptions = append(kyvernoExceptions, kyvernov2alpha1.Exception(exception))
@@ -178,7 +180,6 @@ func trasnlateExceptions(exceptions []giantswarmExceptions.Exception) []kyvernov
 // SetupWithManager sets up the controller with the Manager.
 func (r *PolicyExceptionDraftReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		// Uncomment the following line adding a pointer to an instance of the controlled resource as an argument
 		For(&giantswarmExceptions.PolicyExceptionDraft{}).
 		Owns(&kyvernov2alpha1.PolicyException{}).
 		Complete(r)
