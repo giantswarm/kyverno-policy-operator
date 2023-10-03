@@ -22,11 +22,12 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
-	giantswarmPolicy "github.com/giantswarm/kyverno-policy-operator/api/v1alpha1"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 	kyvernov2alpha1 "github.com/kyverno/kyverno/api/kyverno/v2alpha1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	giantswarmPolicy "github.com/giantswarm/kyverno-policy-operator/api/v1alpha1"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
