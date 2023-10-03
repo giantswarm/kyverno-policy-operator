@@ -168,28 +168,6 @@ func deepEquals(got []kyvernov2alpha1.Exception, want []kyvernov2alpha1.Exceptio
 	return true
 }
 
-// translateDraftToPolex takes a Giant Swarm PolicyExceptionDraft object and transforms it into a Kyverno Policy Exception object
-func translateDraftToPolex(draft giantswarmPolicy.PolicyExceptionDraft, policies map[string]kyvernov1.ClusterPolicy) kyvernov2alpha1.PolicyException {
-	polex := kyvernov2alpha1.PolicyException{}
-	// Translate Targets to Match.Any
-	polex.Spec.Match.Any = kyvernov1.ResourceFilters{}
-	for _, target := range draft.Spec.Targets {
-		resourceFilter := kyvernov1.ResourceFilter{
-			ResourceDescription: kyvernov1.ResourceDescription{
-				Namespaces: target.Namespaces,
-				Names:      target.Names,
-				// TODO: Use Kyverno Policy kinds directly (or not)
-				Kinds: generateExceptionKinds(target.Kind),
-			},
-		}
-		polex.Spec.Match.Any = append(polex.Spec.Match.Any, resourceFilter)
-	}
-
-	polex.Spec.Exceptions = translatePoliciesToExceptions(policies)
-
-	return polex
-}
-
 func translateTargetsToResourceFilters(draft giantswarmPolicy.PolicyExceptionDraft) kyvernov1.ResourceFilters {
 	resourceFilters := kyvernov1.ResourceFilters{}
 	for _, target := range draft.Spec.Targets {
@@ -197,8 +175,7 @@ func translateTargetsToResourceFilters(draft giantswarmPolicy.PolicyExceptionDra
 			ResourceDescription: kyvernov1.ResourceDescription{
 				Namespaces: target.Namespaces,
 				Names:      target.Names,
-				// TODO: Use Kyverno Policy kinds directly
-				Kinds: generateExceptionKinds(target.Kind),
+				Kinds:      generateExceptionKinds(target.Kind),
 			},
 		}
 		resourceFilters = append(resourceFilters, trasnlatedResourceFilter)
