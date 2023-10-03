@@ -7,4 +7,13 @@ layout:
 - go.kubebuilder.io/v4
 projectName: kyverno-policy-operator
 repo: github.com/giantswarm/kyverno-policy-operator
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: giantswarm.io
+  group: policy
+  kind: PolicyException
+  path: github.com/giantswarm/kyverno-policy-operator/api/v1alpha1
+  version: v1alpha1
 version: "3"

@@ -3,7 +3,6 @@ module github.com/giantswarm/kyverno-policy-operator
 go 1.20
 
 require (
-	github.com/giantswarm/exception-recommender v0.0.0-20230915173943-4e62cdb03869
 	github.com/go-logr/logr v1.2.4
 	github.com/kyverno/kyverno v1.10.3
 	k8s.io/apimachinery v0.28.2
@@ -170,6 +169,8 @@ require (
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/oleiade/reflections v1.0.1 // indirect
 	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852 // indirect
+	github.com/onsi/ginkgo/v2 v2.11.0 // indirect
+	github.com/onsi/gomega v1.27.10 // indirect
 	github.com/open-policy-agent/gatekeeper v0.0.0-20210824170141-dd97b8a7e966 // indirect
 	github.com/open-policy-agent/opa v0.56.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
@@ -180,10 +181,10 @@ require (
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/philhofer/fwd v1.1.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/prometheus/client_golang v1.16.0 // indirect
-	github.com/prometheus/client_model v0.4.0 // indirect
+	github.com/prometheus/client_golang v1.17.0 // indirect
+	github.com/prometheus/client_model v0.4.1-0.20230718164431-9a2bf3000d16 // indirect
 	github.com/prometheus/common v0.44.0 // indirect
-	github.com/prometheus/procfs v0.11.1 // indirect
+	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/protocolbuffers/txtpbfmt v0.0.0-20230830074515-d9d085e6be90 // indirect
 	github.com/puzpuzpuz/xsync/v2 v2.5.0 // indirect
 	github.com/r3labs/diff v1.1.0 // indirect
@@ -267,7 +268,7 @@ require (
 	k8s.io/apiextensions-apiserver v0.28.2 // indirect
 	k8s.io/component-base v0.28.2 // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
-	k8s.io/kube-openapi v0.0.0-20230905202853-d090da108d2f // indirect
+	k8s.io/kube-openapi v0.0.0-20230928205116-a78145627833 // indirect
 	k8s.io/kubectl v0.28.2 // indirect
 	k8s.io/pod-security-admission v0.28.2 // indirect
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b // indirect

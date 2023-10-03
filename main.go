@@ -22,7 +22,12 @@ import (
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
-	giantswarmExceptions "github.com/giantswarm/exception-recommender/api/v1alpha1"
+
+	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
+
+	giantswarmPolicy "github.com/giantswarm/kyverno-policy-operator/api/v1alpha1"
+	"github.com/giantswarm/kyverno-policy-operator/internal/controller"
+
 	kyvernov2alpha1 "github.com/kyverno/kyverno/api/kyverno/v2alpha1"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -33,8 +38,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	"github.com/giantswarm/kyverno-policy-operator/internal/controller"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -49,13 +52,13 @@ func init() {
 		setupLog.Error(err, "unable to register kyverno schema")
 	}
 
-	err = giantswarmExceptions.AddToScheme(scheme)
+	err = kyvernov1.AddToScheme(scheme)
 	if err != nil {
-		setupLog.Error(err, "unable to register giantswarm policy schema")
+		setupLog.Error(err, "unable to register kyverno schema")
 	}
 
+	utilruntime.Must(giantswarmPolicy.AddToScheme(scheme))
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -65,7 +68,7 @@ func main() {
 	var probeAddr string
 	var destinationNamespace string
 	// Flags
-	flag.StringVar(&destinationNamespace, "destination-namespace", "", "The namespace where the PolicyExceptions will be created. Defaults to Drafts namespace.")
+	flag.StringVar(&destinationNamespace, "destination-namespace", "", "The namespace where the Kyverno PolicyExceptions will be created. Defaults to GS PolicyException namespace.")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
@@ -103,12 +106,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controller.PolicyExceptionDraftReconciler{
+	if err = (&controller.PolicyExceptionReconciler{
 		Client:               mgr.GetClient(),
 		Scheme:               mgr.GetScheme(),
 		DestinationNamespace: destinationNamespace,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "PolicyExceptionDraft")
+		setupLog.Error(err, "unable to create controller", "controller", "PolicyException")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
