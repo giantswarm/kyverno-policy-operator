@@ -3,7 +3,6 @@ module github.com/giantswarm/kyverno-policy-operator
 go 1.20
 
 require (
-	github.com/giantswarm/exception-recommender v0.0.0-20230928205521-c5e4e2eea340
 	github.com/go-logr/logr v1.2.4
 	github.com/kyverno/kyverno v1.10.3
 	k8s.io/apimachinery v0.28.2
@@ -170,6 +169,8 @@ require (
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/oleiade/reflections v1.0.1 // indirect
 	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852 // indirect
+	github.com/onsi/ginkgo/v2 v2.11.0 // indirect
+	github.com/onsi/gomega v1.27.10 // indirect
 	github.com/open-policy-agent/gatekeeper v0.0.0-20210824170141-dd97b8a7e966 // indirect
 	github.com/open-policy-agent/opa v0.56.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect

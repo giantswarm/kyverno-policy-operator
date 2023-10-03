@@ -1,0 +1,75 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.12.0
+  name: policyexceptions.policy.giantswarm.io.giantswarm.io
+spec:
+  group: policy.giantswarm.io.giantswarm.io
+  names:
+    kind: PolicyException
+    listKind: PolicyExceptionList
+    plural: policyexceptions
+    shortNames:
+    - gspolex
+    singular: policyexception
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: PolicyException is the Schema for the policyexceptions API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: PolicyExceptionSpec defines the desired state of PolicyException
+            properties:
+              policies:
+                description: Policies defines the list of policies to be excluded
+                items:
+                  type: string
+                type: array
+              targets:
+                description: Targes defines the list of target workloads where the
+                  exceptions will be applied
+                items:
+                  description: Target defines a resource to which a PolicyException
+                    applies
+                  properties:
+                    kind:
+                      type: string
+                    names:
+                      items:
+                        type: string
+                      type: array
+                    namespaces:
+                      items:
+                        type: string
+                      type: array
+                  required:
+                  - kind
+                  - names
+                  - namespaces
+                  type: object
+                type: array
+            required:
+            - policies
+            - targets
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

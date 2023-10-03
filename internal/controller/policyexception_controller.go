@@ -22,7 +22,7 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
-	giantswarmPolicy "github.com/giantswarm/exception-recommender/api/v1alpha1"
+	giantswarmPolicy "github.com/giantswarm/kyverno-policy-operator/api/v1alpha1"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 	kyvernov2alpha1 "github.com/kyverno/kyverno/api/kyverno/v2alpha1"
 	"k8s.io/apimachinery/pkg/types"
@@ -35,27 +35,27 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// PolicyExceptionDraftReconciler reconciles a PolicyExceptionDraft object
-type PolicyExceptionDraftReconciler struct {
+// PolicyExceptionReconciler reconciles a PolicyException object
+type PolicyExceptionReconciler struct {
 	client.Client
 	Scheme               *runtime.Scheme
 	Log                  logr.Logger
 	DestinationNamespace string
 }
 
-//+kubebuilder:rbac:groups=policy.giantswarm.io.giantswarm.io,resources=policyexceptiondrafts,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=policy.giantswarm.io.giantswarm.io,resources=policyexceptiondrafts/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=policy.giantswarm.io.giantswarm.io,resources=policyexceptiondrafts/finalizers,verbs=update
+//+kubebuilder:rbac:groups=policy.giantswarm.io.giantswarm.io,resources=policyexceptions,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=policy.giantswarm.io.giantswarm.io,resources=policyexceptions/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=policy.giantswarm.io.giantswarm.io,resources=policyexceptions/finalizers,verbs=update
 
-func (r *PolicyExceptionDraftReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
-	_ = r.Log.WithValues("policyexceptiondraft", req.NamespacedName)
+	_ = r.Log.WithValues("policyexception", req.NamespacedName)
 
-	var exceptionDraft giantswarmPolicy.PolicyExceptionDraft
+	var gsPolicyException giantswarmPolicy.PolicyException
 	// This should be a flag
-	background := true
+	background := false
 
-	if err := r.Get(ctx, req.NamespacedName, &exceptionDraft); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, &gsPolicyException); err != nil {
 		// Error fetching the report
 
 		// Check if the PolicyException was deleted
@@ -64,22 +64,22 @@ func (r *PolicyExceptionDraftReconciler) Reconcile(ctx context.Context, req ctrl
 			return ctrl.Result{}, nil
 		}
 
-		log.Log.Error(err, "unable to fetch PolicyExceptionDraft")
+		log.Log.Error(err, "unable to fetch PolicyException")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	// Define namespace
 	var namespace string
 	if r.DestinationNamespace == "" {
-		namespace = exceptionDraft.Namespace
+		namespace = gsPolicyException.Namespace
 	} else {
 		namespace = r.DestinationNamespace
 	}
 
 	// Create Kyverno exception
-	// Create a policy map for storing draft policies to extract rules later
+	// Create a policy map for storing cluster policies to extract rules later
 	policyMap := make(map[string]kyvernov1.ClusterPolicy)
-	for _, policy := range exceptionDraft.Spec.Policies {
+	for _, policy := range gsPolicyException.Spec.Policies {
 		var kyvernoPolicy kyvernov1.ClusterPolicy
 		if err := r.Get(ctx, types.NamespacedName{Namespace: "", Name: policy}, &kyvernoPolicy); err != nil {
 			// Error fetching the report
@@ -89,19 +89,19 @@ func (r *PolicyExceptionDraftReconciler) Reconcile(ctx context.Context, req ctrl
 
 		policyMap[policy] = kyvernoPolicy
 	}
-	// Translate GiantSwarm PolicyExceptionDraft to Kyverno's PolicyException schema
+	// Translate GiantSwarm PolicyException to Kyverno's PolicyException schema
 	policyException := kyvernov2alpha1.PolicyException{}
 	// Set namespace
 	policyException.Namespace = namespace
 	// Set name
-	policyException.Name = exceptionDraft.Name
+	policyException.Name = gsPolicyException.Name
 	// Set Background behaviour
 	policyException.Spec.Background = &background
 	// Set labels
 	policyException.Labels = make(map[string]string)
 	policyException.Labels["app.kubernetes.io/managed-by"] = "kyverno-policy-operator"
 	// Set ownerReferences
-	if err := controllerutil.SetControllerReference(&exceptionDraft, &policyException, r.Scheme); err != nil {
+	if err := controllerutil.SetControllerReference(&gsPolicyException, &policyException, r.Scheme); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -109,7 +109,7 @@ func (r *PolicyExceptionDraftReconciler) Reconcile(ctx context.Context, req ctrl
 	if op, err := controllerutil.CreateOrUpdate(ctx, r.Client, &policyException, func() error {
 
 		// Set .Spec.Match.Any targets
-		policyException.Spec.Match.Any = translateTargetsToResourceFilters(exceptionDraft)
+		policyException.Spec.Match.Any = translateTargetsToResourceFilters(gsPolicyException)
 
 		// Set .Spec.Exceptions
 		newExceptions := translatePoliciesToExceptions(policyMap)
@@ -168,9 +168,9 @@ func deepEquals(got []kyvernov2alpha1.Exception, want []kyvernov2alpha1.Exceptio
 	return true
 }
 
-func translateTargetsToResourceFilters(draft giantswarmPolicy.PolicyExceptionDraft) kyvernov1.ResourceFilters {
+func translateTargetsToResourceFilters(polex giantswarmPolicy.PolicyException) kyvernov1.ResourceFilters {
 	resourceFilters := kyvernov1.ResourceFilters{}
-	for _, target := range draft.Spec.Targets {
+	for _, target := range polex.Spec.Targets {
 		trasnlatedResourceFilter := kyvernov1.ResourceFilter{
 			ResourceDescription: kyvernov1.ResourceDescription{
 				Namespaces: target.Namespaces,
@@ -231,9 +231,9 @@ func generatePolicyRules(kyvernoPolicy kyvernov1.ClusterPolicy) []string {
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *PolicyExceptionDraftReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *PolicyExceptionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&giantswarmPolicy.PolicyExceptionDraft{}).
+		For(&giantswarmPolicy.PolicyException{}).
 		Owns(&kyvernov2alpha1.PolicyException{}).
 		Complete(r)
 }

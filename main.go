@@ -22,7 +22,7 @@ import (
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
-	giantswarmPolicy "github.com/giantswarm/exception-recommender/api/v1alpha1"
+
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 
 	kyvernov2alpha1 "github.com/kyverno/kyverno/api/kyverno/v2alpha1"
@@ -56,13 +56,7 @@ func init() {
 		setupLog.Error(err, "unable to register kyverno schema")
 	}
 
-	err = giantswarmPolicy.AddToScheme(scheme)
-	if err != nil {
-		setupLog.Error(err, "unable to register giantswarm policy schema")
-	}
-
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -110,12 +104,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controller.PolicyExceptionDraftReconciler{
+	if err = (&controller.PolicyExceptionReconciler{
 		Client:               mgr.GetClient(),
 		Scheme:               mgr.GetScheme(),
 		DestinationNamespace: destinationNamespace,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "PolicyExceptionDraft")
+		setupLog.Error(err, "unable to create controller", "controller", "PolicyException")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
