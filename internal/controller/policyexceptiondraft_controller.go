@@ -18,13 +18,13 @@ package controller
 
 import (
 	"context"
-
 	"fmt"
 
-	giantswarmExceptions "github.com/giantswarm/exception-recommender/api/v1alpha1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
+	giantswarmPolicy "github.com/giantswarm/exception-recommender/api/v1alpha1"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 	kyvernov2alpha1 "github.com/kyverno/kyverno/api/kyverno/v2alpha1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -51,12 +51,19 @@ func (r *PolicyExceptionDraftReconciler) Reconcile(ctx context.Context, req ctrl
 	_ = log.FromContext(ctx)
 	_ = r.Log.WithValues("policyexceptiondraft", req.NamespacedName)
 
-	var exceptionDraft giantswarmExceptions.PolicyExceptionDraft
+	var exceptionDraft giantswarmPolicy.PolicyExceptionDraft
 	// This should be a flag
-	background := false
+	background := true
 
 	if err := r.Get(ctx, req.NamespacedName, &exceptionDraft); err != nil {
 		// Error fetching the report
+
+		// Check if the PolicyException was deleted
+		if apierrors.IsNotFound(err) {
+			// Ignore
+			return ctrl.Result{}, nil
+		}
+
 		log.Log.Error(err, "unable to fetch PolicyExceptionDraft")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -69,118 +76,187 @@ func (r *PolicyExceptionDraftReconciler) Reconcile(ctx context.Context, req ctrl
 		namespace = r.DestinationNamespace
 	}
 
-	// Check if the draft hast been reconciled before
-	if _, exists := exceptionDraft.Labels["kyverno-policy-operator/reconciled"]; !exists {
-		// Label doesn't exist, add it
-		if exceptionDraft.Labels == nil {
-			exceptionDraft.Labels = make(map[string]string)
-		}
-		exceptionDraft.Labels["kyverno-policy-operator/reconciled"] = "true"
-
-		// Update Kubernetes object
-		if err := r.Client.Update(ctx, &exceptionDraft, &client.UpdateOptions{}); err != nil {
-			r.Log.Error(err, "unable to update PolicyExceptionDraft")
-		}
-
-		// Create Kyverno exception
-		// Translate GiantSwarm PolicyExceptionDraft to Kyverno's PolicyException schema
-		policyException := translateDraftToPolex(exceptionDraft)
-		// Set namespace
-		policyException.Namespace = namespace
-		// Set name
-		policyException.Name = exceptionDraft.Name
-		// Set labels
-		policyException.Labels = make(map[string]string)
-		policyException.Labels["app.kubernetes.io/managed-by"] = "kyverno-policy-operator"
-		// Set Background behaviour
-		policyException.Spec.Background = &background
-
-		// Set ownerReferences
-		if err := controllerutil.SetControllerReference(&exceptionDraft, &policyException, r.Scheme); err != nil {
-			return ctrl.Result{}, err
-		}
-
-		// Create PolicyException
-		if err := r.Create(ctx, &policyException); err != nil {
-			if apierrors.IsAlreadyExists(err) {
-				log.Log.Info(fmt.Sprintf("PolicyException %s/%s already exists", namespace, policyException.Name))
-				return ctrl.Result{}, nil
-			} else {
-				log.Log.Error(err, "unable to create PolicyException")
-			}
-		} else {
-			log.Log.Info(fmt.Sprintf("Created PolicyException %s/%s", namespace, policyException.Name))
-		}
-	} else {
-		// Exception must exist since draft was previously reconciled
-		var policyException kyvernov2alpha1.PolicyException
-
-		if err := r.Get(ctx, types.NamespacedName{Namespace: namespace, Name: exceptionDraft.Name}, &policyException); err != nil {
+	// Create Kyverno exception
+	// Create a policy map for storing draft policies to extract rules later
+	policyMap := make(map[string]kyvernov1.ClusterPolicy)
+	for _, policy := range exceptionDraft.Spec.Policies {
+		var kyvernoPolicy kyvernov1.ClusterPolicy
+		if err := r.Get(ctx, types.NamespacedName{Namespace: "", Name: policy}, &kyvernoPolicy); err != nil {
 			// Error fetching the report
-			if apierrors.IsNotFound(err) {
-				// The PolEx doesn't exist, remove the reconciled label from the PolicyExceptionDraft to trigger recreation
-				delete(exceptionDraft.Labels, "kyverno-policy-operator/reconciled")
-
-				// Update Kubernetes object
-				if draftErr := r.Client.Update(ctx, &exceptionDraft, &client.UpdateOptions{}); draftErr != nil {
-					r.Log.Error(draftErr, "unable to update PolicyExceptionDraft")
-				}
-
-				return ctrl.Result{}, nil
-			}
-			log.Log.Error(err, "unable to fetch PolicyException")
+			log.Log.Error(err, "unable to fetch Kyverno Policy")
 			return ctrl.Result{}, client.IgnoreNotFound(err)
 		}
 
-		// Set new exceptions
-		newExceptions := translateExceptions(exceptionDraft.Spec.Exceptions)
-		if len(newExceptions) == len(policyException.Spec.Exceptions) {
-			// We can assume that if the lengths are the same, the exceptions have not changed, but this can be wrong.
-			// This log message is unnecesary, we can delete it after testing
-			r.Log.Info("Exceptions are the same, no need to update")
-			return ctrl.Result{}, nil
+		policyMap[policy] = kyvernoPolicy
+	}
+	// Translate GiantSwarm PolicyExceptionDraft to Kyverno's PolicyException schema
+	policyException := kyvernov2alpha1.PolicyException{}
+	// Set namespace
+	policyException.Namespace = namespace
+	// Set name
+	policyException.Name = exceptionDraft.Name
+	// Set Background behaviour
+	policyException.Spec.Background = &background
+	// Set labels
+	policyException.Labels = make(map[string]string)
+	policyException.Labels["app.kubernetes.io/managed-by"] = "kyverno-policy-operator"
+	// Set ownerReferences
+	if err := controllerutil.SetControllerReference(&exceptionDraft, &policyException, r.Scheme); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Create PolicyException
+	if op, err := controllerutil.CreateOrUpdate(ctx, r.Client, &policyException, func() error {
+
+		// Set .Spec.Match.Any targets
+		policyException.Spec.Match.Any = translateTargetsToResourceFilters(exceptionDraft)
+
+		// Set .Spec.Exceptions
+		newExceptions := translatePoliciesToExceptions(policyMap)
+		if !deepEquals(policyException.Spec.Exceptions, newExceptions) {
+			policyException.Spec.Exceptions = newExceptions
 		}
-		policyException.Spec.Exceptions = newExceptions
-		// Update Kubernetes object
-		if err := r.Client.Update(ctx, &policyException, &client.UpdateOptions{}); err != nil {
-			r.Log.Error(err, "unable to update PolicyException")
-		} else {
-			log.Log.Info(fmt.Sprintf("Updated PolicyException %s/%s", namespace, policyException.Name))
-		}
+
+		return nil
+	}); err != nil {
+		log.Log.Error(err, fmt.Sprintf("Reconciliation failed for PolicyException %s", policyException.Name))
+		return ctrl.Result{}, err
+	} else {
+		log.Log.Info(fmt.Sprintf("PolicyException %s: %s", policyException.Name, op))
 	}
 
 	return ctrl.Result{}, nil
 }
 
-// translateDraftToPolex takes a Giant Swarm PolicyExceptionDraft object and transforms it into a Kyverno Policy Exception object
-func translateDraftToPolex(draft giantswarmExceptions.PolicyExceptionDraft) kyvernov2alpha1.PolicyException {
-	polex := kyvernov2alpha1.PolicyException{}
+func deepEquals(got []kyvernov2alpha1.Exception, want []kyvernov2alpha1.Exception) bool {
+	// Check Length size first
+	if len(got) != len(want) {
+		return false
+	}
+	// Create an exceptions map with the new desired Exceptions
+	exceptionMap := make(map[string][]string)
+	for _, exception := range want {
+		exceptionMap[exception.PolicyName] = exception.RuleNames
+	}
+	for _, exception := range got {
+		// Check if the Policy Name is still present in the new Exceptions
+		if _, exists := exceptionMap[exception.PolicyName]; !exists {
+			// The Policy is not present in the new array
+			// Arrays are not equals, exit
+			return false
+		} else {
+			// Check if the same RuleNames are still present in the new Exceptions
+			for _, oldRule := range exception.RuleNames {
+				found := false
+				// Check against every rule, exit if found
+				for _, newRule := range exceptionMap[exception.PolicyName] {
+					if newRule == oldRule {
+						// Found, break for
+						found = true
+						break
+					}
+				}
+				if !found {
+					// The arrays are not equals, exit
+					return false
+				}
+				// Rules are equals, continue
+			}
+		}
+	}
+	// Arrays are equals
+	return true
+}
 
-	polex.Spec.Match.All = kyvernov1.ResourceFilters{kyvernov1.ResourceFilter{
-		ResourceDescription: kyvernov1.ResourceDescription{
-			Namespaces: draft.Spec.Match.Namespaces,
-			Names:      draft.Spec.Match.Names,
-			Kinds:      draft.Spec.Match.Kinds,
-		}}}
-	polex.Spec.Exceptions = translateExceptions(draft.Spec.Exceptions)
+// translateDraftToPolex takes a Giant Swarm PolicyExceptionDraft object and transforms it into a Kyverno Policy Exception object
+func translateDraftToPolex(draft giantswarmPolicy.PolicyExceptionDraft, policies map[string]kyvernov1.ClusterPolicy) kyvernov2alpha1.PolicyException {
+	polex := kyvernov2alpha1.PolicyException{}
+	// Translate Targets to Match.Any
+	polex.Spec.Match.Any = kyvernov1.ResourceFilters{}
+	for _, target := range draft.Spec.Targets {
+		resourceFilter := kyvernov1.ResourceFilter{
+			ResourceDescription: kyvernov1.ResourceDescription{
+				Namespaces: target.Namespaces,
+				Names:      target.Names,
+				// TODO: Use Kyverno Policy kinds directly (or not)
+				Kinds: generateExceptionKinds(target.Kind),
+			},
+		}
+		polex.Spec.Match.Any = append(polex.Spec.Match.Any, resourceFilter)
+	}
+
+	polex.Spec.Exceptions = translatePoliciesToExceptions(policies)
 
 	return polex
 }
 
-// translateExceptions takes a Giant Swarm Exception array and transforms it into a Kyverno Exception array
-func translateExceptions(exceptions []giantswarmExceptions.Exception) []kyvernov2alpha1.Exception {
-	var kyvernoExceptions []kyvernov2alpha1.Exception
-	for _, exception := range exceptions {
-		kyvernoExceptions = append(kyvernoExceptions, kyvernov2alpha1.Exception(exception))
+func translateTargetsToResourceFilters(draft giantswarmPolicy.PolicyExceptionDraft) kyvernov1.ResourceFilters {
+	resourceFilters := kyvernov1.ResourceFilters{}
+	for _, target := range draft.Spec.Targets {
+		trasnlatedResourceFilter := kyvernov1.ResourceFilter{
+			ResourceDescription: kyvernov1.ResourceDescription{
+				Namespaces: target.Namespaces,
+				Names:      target.Names,
+				// TODO: Use Kyverno Policy kinds directly
+				Kinds: generateExceptionKinds(target.Kind),
+			},
+		}
+		resourceFilters = append(resourceFilters, trasnlatedResourceFilter)
+	}
+	return resourceFilters
+}
+
+// generateKinds creates the subresources necessary for top level controllers like Deployment or StatefulSet
+func generateExceptionKinds(resourceKind string) []string {
+	// Adds the subresources to the exception list for each Kind
+	var exceptionKinds []string
+	exceptionKinds = append(exceptionKinds, resourceKind)
+	// Append ReplicaSets
+	if resourceKind == "Deployment" {
+		exceptionKinds = append(exceptionKinds, "ReplicaSet")
+		// Append Jobs
+	} else if resourceKind == "CronJob" {
+		exceptionKinds = append(exceptionKinds, "Job")
+	}
+	// Always append Pods except if they are the initial resource Kind
+	if resourceKind != "Pod" {
+		exceptionKinds = append(exceptionKinds, "Pod")
 	}
 
-	return kyvernoExceptions
+	return exceptionKinds
+}
+
+// translatePoliciesToExceptions takes a Giant Swarm Policies array and transforms it into a Kyverno Exception array
+func translatePoliciesToExceptions(policies map[string]kyvernov1.ClusterPolicy) []kyvernov2alpha1.Exception {
+	var exceptionArray []kyvernov2alpha1.Exception
+	for policyName, kyvernoPolicy := range policies {
+		kyvernoException := kyvernov2alpha1.Exception{
+			PolicyName: policyName,
+			RuleNames:  generatePolicyRules(kyvernoPolicy),
+		}
+		exceptionArray = append(exceptionArray, kyvernoException)
+	}
+
+	return exceptionArray
+}
+
+// generatePolicyRules takes a Kyverno Policy name and generates a list of rules owned by that policy
+func generatePolicyRules(kyvernoPolicy kyvernov1.ClusterPolicy) []string {
+	var rulesArray []string
+	for _, rule := range kyvernoPolicy.Spec.Rules {
+		rulesArray = append(rulesArray, rule.Name)
+	}
+	for _, autogenRule := range kyvernoPolicy.Status.Autogen.Rules {
+		rulesArray = append(rulesArray, autogenRule.Name)
+	}
+
+	return rulesArray
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *PolicyExceptionDraftReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&giantswarmExceptions.PolicyExceptionDraft{}).
+		For(&giantswarmPolicy.PolicyExceptionDraft{}).
 		Owns(&kyvernov2alpha1.PolicyException{}).
 		Complete(r)
 }

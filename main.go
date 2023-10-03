@@ -22,7 +22,9 @@ import (
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
-	giantswarmExceptions "github.com/giantswarm/exception-recommender/api/v1alpha1"
+	giantswarmPolicy "github.com/giantswarm/exception-recommender/api/v1alpha1"
+	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
+
 	kyvernov2alpha1 "github.com/kyverno/kyverno/api/kyverno/v2alpha1"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -49,7 +51,12 @@ func init() {
 		setupLog.Error(err, "unable to register kyverno schema")
 	}
 
-	err = giantswarmExceptions.AddToScheme(scheme)
+	err = kyvernov1.AddToScheme(scheme)
+	if err != nil {
+		setupLog.Error(err, "unable to register kyverno schema")
+	}
+
+	err = giantswarmPolicy.AddToScheme(scheme)
 	if err != nil {
 		setupLog.Error(err, "unable to register giantswarm policy schema")
 	}
@@ -66,8 +73,8 @@ func main() {
 	var destinationNamespace string
 	// Flags
 	flag.StringVar(&destinationNamespace, "destination-namespace", "", "The namespace where the PolicyExceptions will be created. Defaults to Drafts namespace.")
-	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
-	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8082", "The address the metric endpoint binds to.")
+	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8083", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
