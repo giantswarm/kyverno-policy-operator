@@ -3,20 +3,20 @@
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
-  name: {{ include "recommender.crdInstall" . }}
+  name: {{ include "kyverno-policy-operator.crdInstall" . }}
   namespace: {{ .Release.Namespace | quote }}
   annotations:
     # create hook dependencies in the right order
     "helm.sh/hook-weight": "-7"
-    {{- include "recommender.CRDInstallAnnotations" . | nindent 4 }}
+    {{- include "kyverno-policy-operator.CRDInstallAnnotations" . | nindent 4 }}
   labels:
-    app.kubernetes.io/component: {{ include "recommender.crdInstall" . | quote }}
+    app.kubernetes.io/component: {{ include "kyverno-policy-operator.crdInstall" . | quote }}
     {{- include "labels.selector" . | nindent 4 }}
-    role: {{ include "recommender.CRDInstallSelector" . | quote }}
+    role: {{ include "kyverno-policy-operator.CRDInstallSelector" . | quote }}
 spec:
   endpointSelector:
     matchLabels:
-      app.kubernetes.io/component: {{ include "recommender.crdInstall" . | quote }}
+      app.kubernetes.io/component: {{ include "kyverno-policy-operator.crdInstall" . | quote }}
       {{- include "labels.selector" . | nindent 6 }}
   egress:
     - toEntities:
@@ -30,20 +30,20 @@ spec:
 kind: NetworkPolicy
 apiVersion: networking.k8s.io/v1
 metadata:
-  name: {{ include "recommender.crdInstall" . }}
+  name: {{ include "kyverno-policy-operator.crdInstall" . }}
   namespace: {{ .Release.Namespace | quote }}
   annotations:
     # create hook dependencies in the right order
     "helm.sh/hook-weight": "-7"
-    {{- include "recommender.CRDInstallAnnotations" . | nindent 4 }}
+    {{- include "kyverno-policy-operator.CRDInstallAnnotations" . | nindent 4 }}
   labels:
-    app.kubernetes.io/component: {{ include "recommender.crdInstall" . | quote }}
+    app.kubernetes.io/component: {{ include "kyverno-policy-operator.crdInstall" . | quote }}
     {{- include "labels.selector" . | nindent 4 }}
-    role: {{ include "recommender.CRDInstallSelector" . | quote }}
+    role: {{ include "kyverno-policy-operator.CRDInstallSelector" . | quote }}
 spec:
   podSelector:
     matchLabels:
-      app.kubernetes.io/component: {{ include "recommender.crdInstall" . | quote }}
+      app.kubernetes.io/component: {{ include "kyverno-policy-operator.crdInstall" . | quote }}
       {{- include "labels.selector" . | nindent 6 }}
   # allow egress traffic to the Kubernetes API
   egress:

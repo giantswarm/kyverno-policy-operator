@@ -2,16 +2,16 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ include "recommender.crdInstall" . }}
+  name: {{ include "kyverno-policy-operator.crdInstall" . }}
   namespace: {{ .Release.Namespace | quote }}
   annotations:
     # create hook dependencies in the right order
     "helm.sh/hook-weight": "-3"
-    {{- include "recommender.CRDInstallAnnotations" . | nindent 4 }}
+    {{- include "kyverno-policy-operator.CRDInstallAnnotations" . | nindent 4 }}
   labels:
-    app.kubernetes.io/component: {{ include "recommender.crdInstall" . | quote }}
+    app.kubernetes.io/component: {{ include "kyverno-policy-operator.crdInstall" . | quote }}
     {{- include "labels.selector" . | nindent 4 }}
-    role: {{ include "recommender.CRDInstallSelector" . | quote }}
+    role: {{ include "kyverno-policy-operator.CRDInstallSelector" . | quote }}
 rules:
 - apiGroups:
   - ""
@@ -35,29 +35,29 @@ rules:
   resources:
   - podsecuritypolicies
   resourceNames:
-  - {{ include "recommender.crdInstall" . }}
+  - {{ include "kyverno-policy-operator.crdInstall" . }}
   verbs:
   - use
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ include "recommender.crdInstall" . }}
+  name: {{ include "kyverno-policy-operator.crdInstall" . }}
   namespace: {{ .Release.Namespace | quote }}
   annotations:
     # create hook dependencies in the right order
     "helm.sh/hook-weight": "-2"
-    {{- include "recommender.CRDInstallAnnotations" . | nindent 4 }}
+    {{- include "kyverno-policy-operator.CRDInstallAnnotations" . | nindent 4 }}
   labels:
-    app.kubernetes.io/component: {{ include "recommender.crdInstall" . | quote }}
+    app.kubernetes.io/component: {{ include "kyverno-policy-operator.crdInstall" . | quote }}
     {{- include "labels.common" . | nindent 4 }}
-    role: {{ include "recommender.CRDInstallSelector" . | quote }}
+    role: {{ include "kyverno-policy-operator.CRDInstallSelector" . | quote }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ include "recommender.crdInstall" . }}
+  name: {{ include "kyverno-policy-operator.crdInstall" . }}
 subjects:
   - kind: ServiceAccount
-    name: {{ include "recommender.crdInstall" . }}
+    name: {{ include "kyverno-policy-operator.crdInstall" . }}
     namespace: {{ .Release.Namespace | quote }}
 {{- end }}

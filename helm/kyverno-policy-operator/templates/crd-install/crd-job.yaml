@@ -2,24 +2,24 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "recommender.crdInstall" . }}
+  name: {{ include "kyverno-policy-operator.crdInstall" . }}
   namespace: {{ .Release.Namespace | quote }}
   annotations:
     # create hook dependencies in the right order
     "helm.sh/hook-weight": "-1"
-    {{- include "recommender.CRDInstallAnnotations" . | nindent 4 }}
+    {{- include "kyverno-policy-operator.CRDInstallAnnotations" . | nindent 4 }}
   labels:
-    app.kubernetes.io/component: {{ include "recommender.crdInstall" . | quote }}
+    app.kubernetes.io/component: {{ include "kyverno-policy-operator.crdInstall" . | quote }}
     {{- include "labels.selector" . | nindent 4 }}
-    role: {{ include "recommender.CRDInstallSelector" . | quote }}
+    role: {{ include "kyverno-policy-operator.CRDInstallSelector" . | quote }}
 spec:
   template:
     metadata:
       labels:
-        app.kubernetes.io/component: {{ include "recommender.crdInstall" . | quote }}
+        app.kubernetes.io/component: {{ include "kyverno-policy-operator.crdInstall" . | quote }}
         {{- include "labels.selector" . | nindent 8 }}
     spec:
-      serviceAccountName: {{ include "recommender.crdInstall" . }}
+      serviceAccountName: {{ include "kyverno-policy-operator.crdInstall" . }}
       securityContext:
         seccompProfile:
           type: RuntimeDefault
@@ -59,7 +59,7 @@ spec:
     {{- with $currentScope }}
       - name: {{ $path | base | trimSuffix ".yaml" }}
         configMap:
-          name: {{ include "recommender.crdInstall" . }}-{{ $path | base | trimSuffix ".yaml" }}
+          name: {{ include "kyverno-policy-operator.crdInstall" . }}-{{ $path | base | trimSuffix ".yaml" }}
           items:
           - key: content
             path: {{ $path | base }}
