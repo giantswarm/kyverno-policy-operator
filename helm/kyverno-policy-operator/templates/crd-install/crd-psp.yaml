@@ -1,0 +1,38 @@
+{{- if .Values.crds.install }}
+{{- if not .Values.global.podSecurityStandards.enforced }}
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: {{ include "kyverno-policy-operator.crdInstall" . }}
+  annotations:
+    # create hook dependencies in the right order
+    "helm.sh/hook-weight": "-6"
+    {{- include "kyverno-policy-operator.CRDInstallAnnotations" . | nindent 4 }}
+  labels:
+    app.kubernetes.io/component: {{ include "kyverno-policy-operator.crdInstall" . | quote }}
+    {{- include "labels.selector" . | nindent 4 }}
+    role: {{ include "kyverno-policy-operator.CRDInstallSelector" . | quote }}
+spec:
+  privileged: false
+  runAsUser:
+    rule: MustRunAsNonRoot
+  seLinux:
+    rule: RunAsAny
+  supplementalGroups:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1
+        max: 65535
+  volumes:
+  - 'configMap'
+  hostPID: false
+  hostIPC: false
+  hostNetwork: false
+  fsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1
+        max: 65535
+  readOnlyRootFilesystem: false
+{{- end }}
+{{- end }}
