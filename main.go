@@ -25,6 +25,7 @@ import (
 
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 
+	giantswarmPolicy "github.com/giantswarm/kyverno-policy-operator/api/v1alpha1"
 	"github.com/giantswarm/kyverno-policy-operator/internal/controller"
 
 	kyvernov2alpha1 "github.com/kyverno/kyverno/api/kyverno/v2alpha1"
@@ -56,6 +57,7 @@ func init() {
 		setupLog.Error(err, "unable to register kyverno schema")
 	}
 
+	utilruntime.Must(giantswarmPolicy.AddToScheme(scheme))
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
