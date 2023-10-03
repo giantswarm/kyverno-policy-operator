@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.12.0
-  name: policyexceptions.policy.giantswarm.io.giantswarm.io
+  name: policyexceptions.policy.giantswarm.io
 spec:
-  group: policy.giantswarm.io.giantswarm.io
+  group: policy.giantswarm.io
   names:
     kind: PolicyException
     listKind: PolicyExceptionList

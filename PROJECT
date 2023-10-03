@@ -12,7 +12,7 @@ resources:
     crdVersion: v1
     namespaced: true
   domain: giantswarm.io
-  group: policy.giantswarm.io
+  group: policy
   kind: PolicyException
   path: github.com/giantswarm/kyverno-policy-operator/api/v1alpha1
   version: v1alpha1

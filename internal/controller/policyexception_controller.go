@@ -44,9 +44,9 @@ type PolicyExceptionReconciler struct {
 	DestinationNamespace string
 }
 
-//+kubebuilder:rbac:groups=policy.giantswarm.io.giantswarm.io,resources=policyexceptions,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=policy.giantswarm.io.giantswarm.io,resources=policyexceptions/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=policy.giantswarm.io.giantswarm.io,resources=policyexceptions/finalizers,verbs=update
+//+kubebuilder:rbac:groups=policy.giantswarm.io,resources=policyexceptions,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=policy.giantswarm.io,resources=policyexceptions/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=policy.giantswarm.io,resources=policyexceptions/finalizers,verbs=update
 
 func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
