@@ -1,0 +1,70 @@
+{{- if .Values.crds.install }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "kyverno-policy-operator.crdInstall" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  annotations:
+    # create hook dependencies in the right order
+    "helm.sh/hook-weight": "-1"
+    {{- include "kyverno-policy-operator.CRDInstallAnnotations" . | nindent 4 }}
+  labels:
+    app.kubernetes.io/component: {{ include "kyverno-policy-operator.crdInstall" . | quote }}
+    {{- include "labels.selector" . | nindent 4 }}
+    role: {{ include "kyverno-policy-operator.CRDInstallSelector" . | quote }}
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: {{ include "kyverno-policy-operator.crdInstall" . | quote }}
+        {{- include "labels.selector" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "kyverno-policy-operator.crdInstall" . }}
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+        runAsUser: 65534
+        runAsGroup: 65534
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        effect: NoSchedule
+      containers:
+      - name: kubectl
+        image: "{{ .Values.image.registry }}/giantswarm/docker-kubectl:{{ .Values.crds.image.tag }}"
+        command:
+        - sh
+        - -c
+        - |
+          set -o errexit ; set -o xtrace ; set -o nounset
+
+          # piping stderr to stdout means kubectl's errors are surfaced
+          # in the pod's logs.
+          kubectl apply --server-side -f /data/ 2>&1
+        securityContext:
+          seccompProfile:
+            type: RuntimeDefault
+          readOnlyRootFilesystem: true
+          runAsUser: 65534
+          runAsGroup: 65534
+        volumeMounts:
+{{- range $path, $_ := .Files.Glob "crd/**" }}
+        - name: {{ $path | base | trimSuffix ".yaml" }}
+          mountPath: /data/{{ $path | base }}
+          subPath: {{ $path | base }}
+{{- end }}
+        resources: {{- toYaml .Values.crds.resources | nindent 10 }}
+      volumes:
+{{ $currentScope := . }}
+{{- range $path, $_ := .Files.Glob "crd/**" }}
+    {{- with $currentScope }}
+      - name: {{ $path | base | trimSuffix ".yaml" }}
+        configMap:
+          name: {{ include "kyverno-policy-operator.crdInstall" . }}-{{ $path | base | trimSuffix ".yaml" }}
+          items:
+          - key: content
+            path: {{ $path | base }}
+{{- end }}
+{{- end }}
+      restartPolicy: Never
+  backoffLimit: 4
+{{- end }}

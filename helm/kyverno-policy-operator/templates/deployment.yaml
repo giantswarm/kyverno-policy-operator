@@ -69,7 +69,7 @@ spec:
           timeoutSeconds: 1
         resources:
 {{ toYaml .Values.resources | indent 10 }}
-        {{- with .Values.securityContext }}
+        {{- with .Values.containerSecurityContext }}
         securityContext:
           {{- . | toYaml | nindent 10 }}
         {{- end }}

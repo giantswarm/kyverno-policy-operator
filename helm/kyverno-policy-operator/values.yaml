@@ -7,8 +7,9 @@ image:
   pullPolicy: IfNotPresent
 
 # Install PSPs
-psp:
-  enabled: true
+global:
+  podSecurityStandards:
+    enforced: false
 
 # We install CRDs through a Job with the helm specific crd folder.
 crds:
@@ -39,7 +40,7 @@ podSecurityContext:
     type: RuntimeDefault
 
 # Container securityContext
-securityContext:
+containerSecurityContext:
   allowPrivilegeEscalation: false
   capabilities:
     drop:

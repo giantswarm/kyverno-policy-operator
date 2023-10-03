@@ -8,6 +8,14 @@ rules:
   - apiGroups:
       - kyverno.io
     resources:
+      - clusterpolicies
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - kyverno.io
+    resources:
       - policyexceptions
     verbs:
       - create
@@ -20,7 +28,7 @@ rules:
   - apiGroups:
       - policy.giantswarm.io
     resources:
-      - policyexceptiondrafts
+      - policyexceptions
     verbs:
       - get
       - list
