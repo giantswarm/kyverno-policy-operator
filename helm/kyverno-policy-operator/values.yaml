@@ -39,7 +39,7 @@ podSecurityContext:
     type: RuntimeDefault
 
 # Container securityContext
-securityContext:
+containerSecurityContext:
   allowPrivilegeEscalation: false
   capabilities:
     drop:

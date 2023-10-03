@@ -20,7 +20,7 @@ rules:
   - apiGroups:
       - policy.giantswarm.io
     resources:
-      - policyexceptiondrafts
+      - policyexceptions
     verbs:
       - get
       - list
