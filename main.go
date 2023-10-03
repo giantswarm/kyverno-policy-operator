@@ -23,8 +23,9 @@ import (
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 
-	"github.com/giantswarm/kyverno-policy-operator/internal/controller"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
+
+	"github.com/giantswarm/kyverno-policy-operator/internal/controller"
 
 	kyvernov2alpha1 "github.com/kyverno/kyverno/api/kyverno/v2alpha1"
 
