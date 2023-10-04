@@ -9,7 +9,7 @@ Here we define the kyverno-policy-operator chart with its templates and default 
 
 Kyverno Policy Operator reconciles the GiantSwarm PolicyException instances and creates the necessary Kyverno PolicyExceptions objects.
 
-A GiantSwarm PolicyException consists of a list of Policies and Targets to be excluded from the Kyverno Policy Engine. Having a GiantSwarm PolicyException will ensure that workloads targeted by that policy won't be blocked during Admission time by Kyverno.
+A Giant Swarm PolicyException consists of a list of Policies and Targets to be excluded from the Kyverno Policy Engine. Having a Giant Swarm PolicyException will ensure that workloads targeted by that policy won't be blocked during Admission time by Kyverno.
 
 ### Sample Giant Swarm PolicyException:
 
