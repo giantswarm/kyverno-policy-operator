@@ -7,7 +7,7 @@
 Giant Swarm offers a kyverno-policy-operator App which can be installed in workload clusters.
 Here we define the kyverno-policy-operator chart with its templates and default configuration.
 
-Kyverno Policy Operator reconciles the GiantSwarm PolicyException instances and creates the necessary Kyverno PolicyExceptions objects.
+Kyverno Policy Operator reconciles the Giant Swarm PolicyException instances and creates the necessary Kyverno PolicyExceptions objects.
 
 A Giant Swarm PolicyException consists of a list of Policies and Targets to be excluded from the Kyverno Policy Engine. Having a Giant Swarm PolicyException will ensure that workloads targeted by that policy won't be blocked during Admission time by Kyverno.
 
