@@ -11,7 +11,7 @@ Kyverno Policy Operator reconciles the GiantSwarm PolicyException instances and 
 
 A GiantSwarm PolicyException consists of a list of Policies and Targets to be excluded from the Kyverno Policy Engine. Having a GiantSwarm PolicyException will ensure that workloads targeted by that policy won't be blocked during Admission time by Kyverno.
 
-### Sample GiantSwarm PolicyException:
+### Sample Giant Swarm PolicyException:
 
 In some cases, it may be necessary to exempt specific resources from the enforcement of Kyverno policies, such as `disallow-privilege-escalation` and `require-run-as-nonroot`. To achieve this, you can create a GiantSwarm PolicyException. Below is an example of how to exclude the `my-custom-operator` Deployment in the `default` namespace from these policies:
 
