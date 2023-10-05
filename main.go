@@ -78,8 +78,8 @@ func main() {
 	opts := zap.Options{
 		Development: true,
 	}
-	flag.BoolVar(&backgroundMode, "background-mode", true,
-		"Enable PolicyException background mode.",
+	flag.BoolVar(&backgroundMode, "background-mode", false,
+		"Enable PolicyException background mode. If true, failing resources have a status of 'skip' in reports, instead of 'fail'. Defaults to false.",
 	)
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
