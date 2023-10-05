@@ -62,5 +62,5 @@ resources:
 policyOperator:
   # Set where to install PolicyExceptions
   destinationNamespace: ""
-  # Enable background mode in PolicyExceptions
+  # Apply the generated PolicyExceptions also in Kyverno background scans. Changes audit results from fail to skip.
   exceptionBackgroundMode: true
