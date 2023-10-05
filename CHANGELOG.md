@@ -7,6 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- First release of the Kyverno Policy Exception App. 
+- First release of the Kyverno Policy Operator App. 
 
 [Unreleased]: https://github.com/giantswarm/kyverno-policy-operator/tree/main
