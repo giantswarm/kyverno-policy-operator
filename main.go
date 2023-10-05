@@ -67,6 +67,7 @@ func main() {
 	var enableLeaderElection bool
 	var probeAddr string
 	var destinationNamespace string
+	var backgroundMode bool
 	// Flags
 	flag.StringVar(&destinationNamespace, "destination-namespace", "", "The namespace where the Kyverno PolicyExceptions will be created. Defaults to GS PolicyException namespace.")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
@@ -77,6 +78,9 @@ func main() {
 	opts := zap.Options{
 		Development: true,
 	}
+	flag.BoolVar(&backgroundMode, "background-mode", true,
+		"Enable PolicyException background mode.",
+	)
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
@@ -110,6 +114,7 @@ func main() {
 		Client:               mgr.GetClient(),
 		Scheme:               mgr.GetScheme(),
 		DestinationNamespace: destinationNamespace,
+		Background:           backgroundMode,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PolicyException")
 		os.Exit(1)

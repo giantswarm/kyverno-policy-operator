@@ -42,6 +42,7 @@ type PolicyExceptionReconciler struct {
 	Scheme               *runtime.Scheme
 	Log                  logr.Logger
 	DestinationNamespace string
+	Background           bool
 }
 
 //+kubebuilder:rbac:groups=policy.giantswarm.io,resources=policyexceptions,verbs=get;list;watch;create;update;patch;delete
@@ -53,8 +54,6 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	_ = r.Log.WithValues("policyexception", req.NamespacedName)
 
 	var gsPolicyException giantswarmPolicy.PolicyException
-	// This should be a flag
-	background := false
 
 	if err := r.Get(ctx, req.NamespacedName, &gsPolicyException); err != nil {
 		// Error fetching the report
@@ -96,8 +95,7 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	policyException.Namespace = namespace
 	// Set name
 	policyException.Name = gsPolicyException.Name
-	// Set Background behaviour
-	policyException.Spec.Background = &background
+
 	// Set labels
 	policyException.Labels = make(map[string]string)
 	policyException.Labels["app.kubernetes.io/managed-by"] = "kyverno-policy-operator"
@@ -108,6 +106,9 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// Create PolicyException
 	if op, err := controllerutil.CreateOrUpdate(ctx, r.Client, &policyException, func() error {
+
+		// Set Background behaviour
+		policyException.Spec.Background = &r.Background
 
 		// Set .Spec.Match.Any targets
 		policyException.Spec.Match.Any = translateTargetsToResourceFilters(gsPolicyException)
