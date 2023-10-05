@@ -84,6 +84,14 @@
         "global": {
             "type": "object",
             "properties": {
+                "image": {
+                    "type": "object",
+                    "properties": {
+                        "registry": {
+                            "type": "string"
+                        }
+                    }
+                },
                 "podSecurityStandards": {
                     "type": "object",
                     "properties": {
