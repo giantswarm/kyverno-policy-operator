@@ -114,7 +114,7 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 		// Set .Spec.Exceptions
 		newExceptions := translatePoliciesToExceptions(policyMap)
-		if !deepEquals(policyException.Spec.Exceptions, newExceptions) {
+		if !unorderedEqual(policyException.Spec.Exceptions, newExceptions) {
 			policyException.Spec.Exceptions = newExceptions
 		}
 
@@ -129,7 +129,7 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	return ctrl.Result{}, nil
 }
 
-func deepEquals(got []kyvernov2alpha1.Exception, want []kyvernov2alpha1.Exception) bool {
+func unorderedEqual(got, want []kyvernov2alpha1.Exception) bool {
 	// Check Length size first
 	if len(got) != len(want) {
 		return false
