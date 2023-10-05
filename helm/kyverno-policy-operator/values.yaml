@@ -60,4 +60,7 @@ resources:
     memory: 220Mi
 
 policyOperator:
+  # Set where to install PolicyExceptions
   destinationNamespace: ""
+  # Enable background mode in PolicyExceptions
+  exceptionBackgroundMode: true

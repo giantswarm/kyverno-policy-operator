@@ -147,6 +147,9 @@
             "properties": {
                 "destinationNamespace": {
                     "type": "string"
+                },
+                "exceptionBackgroundMode": {
+                    "type": "boolean"
                 }
             }
         },
