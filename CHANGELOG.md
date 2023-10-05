@@ -7,6 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- changed: `app.giantswarm.io` label group was changed to `application.giantswarm.io`
+- First release of the Kyverno Policy Exception App. 
 
-[Unreleased]: https://github.com/giantswarm/{APP-NAME}/tree/main
+[Unreleased]: https://github.com/giantswarm/kyverno-policy-operator/tree/main
