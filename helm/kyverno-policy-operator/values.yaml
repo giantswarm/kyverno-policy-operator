@@ -8,6 +8,9 @@ image:
 
 # Install PSPs
 global:
+  image:
+    registry: "docker.io"
+  # Enable PSPs
   podSecurityStandards:
     enforced: false
 

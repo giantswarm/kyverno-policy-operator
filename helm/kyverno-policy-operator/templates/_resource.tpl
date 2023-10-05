@@ -26,3 +26,10 @@ room for such suffix.
 {{- define "resource.pullSecret.name" -}}
 {{- include "resource.default.name" . -}}-pull-secret
 {{- end -}}
+
+{{/* Define the image registry based on the global values */}}
+{{- define "global.imageRegistry" -}}
+{{- if ((.Values.global).image).registry -}}
+{{ .Values.global.image.registry }}
+{{- end -}}
+{{- end -}}
