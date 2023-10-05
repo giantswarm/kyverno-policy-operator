@@ -63,4 +63,7 @@ resources:
     memory: 220Mi
 
 policyOperator:
+  # Set where to install PolicyExceptions
   destinationNamespace: ""
+  # Apply the generated PolicyExceptions also in Kyverno background scans. Changes audit results from fail to skip.
+  exceptionBackgroundMode: true

@@ -57,6 +57,7 @@ spec:
         {{- if .Values.policyOperator.destinationNamespace }}
           - --destination-namespace={{ .Values.policyOperator.destinationNamespace }}
         {{- end }}
+          - --background-mode={{ .Values.policyOperator.exceptionBackgroundMode }}
         ports:
         - containerPort: 8080
           name: metrics
