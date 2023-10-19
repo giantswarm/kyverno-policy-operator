@@ -144,7 +144,7 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.16.7 // indirect
+	github.com/klauspost/compress v1.17.0 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.1 // indirect
 	github.com/lestrrat-go/httpcc v1.0.1 // indirect
@@ -278,8 +278,8 @@ require (
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
-replace github.com/gofiber/fiber/v2 => github.com/gofiber/fiber/v2 v2.49.2
+replace github.com/gofiber/fiber/v2 => github.com/gofiber/fiber/v2 v2.50.0
 
-replace github.com/nats-io/jwt => github.com/nats-io/jwt v2.5.0+incompatible
+replace github.com/nats-io/jwt => github.com/nats-io/jwt v2.5.2+incompatible
 
-replace github.com/nats-io/nats-server/v2 => github.com/nats-io/nats-server/v2 v2.9.22
+replace github.com/nats-io/nats-server/v2 => github.com/nats-io/nats-server/v2 v2.10.3
