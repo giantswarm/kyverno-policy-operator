@@ -122,10 +122,7 @@ var _ = Describe("PolicyException controller", func() {
 			It("must create a Kyverno PolicyException", func() {
 				Eventually(func() bool {
 					err := k8sClient.Get(ctx, policyExceptionLookupKey, &kyvernoPolicyException)
-					if err != nil {
-						return false
-					}
-					return true
+					return err == nil
 				}, timeout, interval).Should(BeTrue())
 			})
 		})
@@ -135,10 +132,7 @@ var _ = Describe("PolicyException controller", func() {
 				// A Kyverno PolicyException must exist
 				Eventually(func() bool {
 					err := k8sClient.Get(ctx, policyExceptionLookupKey, &kyvernoPolicyException)
-					if err != nil {
-						return false
-					}
-					return true
+					return err == nil
 				}, timeout, interval).Should(BeTrue())
 
 				// Update GS PolicyException
@@ -146,20 +140,14 @@ var _ = Describe("PolicyException controller", func() {
 				gsPolicyException := giantswarmPolicy.PolicyException{}
 				Eventually(func() bool {
 					err := k8sClient.Get(ctx, policyExceptionLookupKey, &gsPolicyException)
-					if err != nil {
-						return false
-					}
-					return true
+					return err == nil
 				}, timeout, interval).Should(BeTrue())
 
 				// Update policies list
 				gsPolicyException.Spec.Policies = append(gsPolicyException.Spec.Policies, PolicyName+"-strict")
 				Eventually(func() bool {
 					err := k8sClient.Update(ctx, &gsPolicyException)
-					if err != nil {
-						return false
-					}
-					return true
+					return err == nil
 				}, timeout, interval).Should(BeTrue())
 			})
 
