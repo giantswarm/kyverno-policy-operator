@@ -58,7 +58,7 @@ spec:
           - --destination-namespace={{ .Values.policyOperator.destinationNamespace }}
         {{- end }}
         {{- if .Values.policyOperator.chartOperatorExcemptedKinds }}
-          - --target-labels={{ .Values.policyOperator.chartOperatorExcemptedKinds | join "," }}
+          - --chart-operator-excempted-kinds={{ .Values.policyOperator.chartOperatorExcemptedKinds | join "," }}
         {{- end }}
           - --background-mode={{ .Values.policyOperator.exceptionBackgroundMode }}
         ports:
