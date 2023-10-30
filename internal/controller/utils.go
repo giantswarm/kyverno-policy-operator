@@ -1,9 +1,10 @@
 package controller
 
 import (
-	giantswarmPolicy "github.com/giantswarm/kyverno-policy-operator/api/v1alpha1"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 	kyvernov2alpha1 "github.com/kyverno/kyverno/api/kyverno/v2alpha1"
+
+	giantswarmPolicy "github.com/giantswarm/kyverno-policy-operator/api/v1alpha1"
 )
 
 // translateTargetsToResourceFilters takes a Giant Swarm PolicyException and creates the necessary Kyverno ResourceFilters
