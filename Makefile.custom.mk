@@ -6,7 +6,7 @@ clear-envtest-cache: ## Clear envtest ports cache
 
 .PHONY: test-unit
 test-unit: ginkgo generate fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" $(GINKGO) -p --nodes 4 --cover -r -randomize-all --randomize-suites --skip-package=tests ./...
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" $(GINKGO) --cover -r --skip-package=tests ./...
 
 .PHONY: test-all
 test-all: test-unit  ## Run all tests and litner
