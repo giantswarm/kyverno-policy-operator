@@ -18,11 +18,14 @@ package controller
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"path/filepath"
 	"testing"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	"github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -59,6 +62,8 @@ func TestControllers(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+
+	GetEnvOrSkip("KUBEBUILDER_ASSETS")
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
@@ -114,3 +119,12 @@ var _ = AfterSuite(func() {
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
 })
+
+func GetEnvOrSkip(env string) string {
+	value := os.Getenv(env)
+	if value == "" {
+		ginkgo.Skip(fmt.Sprintf("%s not exported", env))
+	}
+
+	return value
+}
