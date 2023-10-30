@@ -87,9 +87,9 @@ func main() {
 		"A comma-separated list of kinds to be excluded from custom ClusterPolicies. This lets the chart-operator ServiceAccount to create protected objects.",
 		func(input string) error {
 			items := strings.Split(input, ",")
-			for _, kind := range items {
-				chartOperatorExcemptedKinds = append(chartOperatorExcemptedKinds, kind)
-			}
+
+			chartOperatorExcemptedKinds = append(chartOperatorExcemptedKinds, items...)
+
 			return nil
 		})
 	opts.BindFlags(flag.CommandLine)
