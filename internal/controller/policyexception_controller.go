@@ -20,7 +20,9 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 	kyvernov2alpha1 "github.com/kyverno/kyverno/api/kyverno/v2alpha1"
@@ -78,6 +80,7 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// Create Kyverno exception
 	// Create a policy map for storing cluster policies to extract rules later
+	// TODO: Take this block out and move it to utils
 	policyMap := make(map[string]kyvernov1.ClusterPolicy)
 	for _, policy := range gsPolicyException.Spec.Policies {
 		var kyvernoPolicy kyvernov1.ClusterPolicy
@@ -130,59 +133,25 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	return ctrl.Result{}, nil
 }
 
-func unorderedEqual(got, want []kyvernov2alpha1.Exception) bool {
-	// Check Length size first
-	if len(got) != len(want) {
-		return false
-	}
-	// Create an exceptions map with the new desired Exceptions
-	exceptionMap := make(map[string][]string)
-	for _, exception := range want {
-		exceptionMap[exception.PolicyName] = exception.RuleNames
-	}
-	for _, exception := range got {
-		// Check if the Policy Name is still present in the new Exceptions
-		if _, exists := exceptionMap[exception.PolicyName]; !exists {
-			// The Policy is not present in the new array
-			// Arrays are not equals, exit
-			return false
-		} else {
-			// Check if the same RuleNames are still present in the new Exceptions
-			for _, oldRule := range exception.RuleNames {
-				found := false
-				// Check against every rule, exit if found
-				for _, newRule := range exceptionMap[exception.PolicyName] {
-					if newRule == oldRule {
-						// Found, break for
-						found = true
-						break
-					}
-				}
-				if !found {
-					// The arrays are not equals, exit
-					return false
-				}
-				// Rules are equals, continue
-			}
-		}
-	}
-	// Arrays are equals
-	return true
-}
+// CreateOrUpdate attempts first to patch the object given but if an IsNotFound error
+// is returned it instead creates the resource.
+func (r *PolicyExceptionReconciler) CreateOrUpdate(ctx context.Context, obj client.Object) error {
+	existingObj := unstructured.Unstructured{}
+	existingObj.SetGroupVersionKind(obj.GetObjectKind().GroupVersionKind())
 
-func translateTargetsToResourceFilters(polex giantswarmPolicy.PolicyException) kyvernov1.ResourceFilters {
-	resourceFilters := kyvernov1.ResourceFilters{}
-	for _, target := range polex.Spec.Targets {
-		trasnlatedResourceFilter := kyvernov1.ResourceFilter{
-			ResourceDescription: kyvernov1.ResourceDescription{
-				Namespaces: target.Namespaces,
-				Names:      target.Names,
-				Kinds:      generateExceptionKinds(target.Kind),
-			},
-		}
-		resourceFilters = append(resourceFilters, trasnlatedResourceFilter)
+	err := r.Get(ctx, client.ObjectKeyFromObject(obj), &existingObj)
+	switch {
+	case err == nil:
+		// Update:
+		obj.SetResourceVersion(existingObj.GetResourceVersion())
+		obj.SetUID(existingObj.GetUID())
+		return r.Patch(ctx, obj, client.MergeFrom(existingObj.DeepCopy()))
+	case errors.IsNotFound(err):
+		// Create:
+		return r.Create(ctx, obj)
+	default:
+		return err
 	}
-	return resourceFilters
 }
 
 // generateKinds creates the subresources necessary for top level controllers like Deployment or StatefulSet
@@ -203,33 +172,6 @@ func generateExceptionKinds(resourceKind string) []string {
 	}
 
 	return exceptionKinds
-}
-
-// translatePoliciesToExceptions takes a Giant Swarm Policies array and transforms it into a Kyverno Exception array
-func translatePoliciesToExceptions(policies map[string]kyvernov1.ClusterPolicy) []kyvernov2alpha1.Exception {
-	var exceptionArray []kyvernov2alpha1.Exception
-	for policyName, kyvernoPolicy := range policies {
-		kyvernoException := kyvernov2alpha1.Exception{
-			PolicyName: policyName,
-			RuleNames:  generatePolicyRules(kyvernoPolicy),
-		}
-		exceptionArray = append(exceptionArray, kyvernoException)
-	}
-
-	return exceptionArray
-}
-
-// generatePolicyRules takes a Kyverno Policy name and generates a list of rules owned by that policy
-func generatePolicyRules(kyvernoPolicy kyvernov1.ClusterPolicy) []string {
-	var rulesArray []string
-	for _, rule := range kyvernoPolicy.Spec.Rules {
-		rulesArray = append(rulesArray, rule.Name)
-	}
-	for _, autogenRule := range kyvernoPolicy.Status.Autogen.Rules {
-		rulesArray = append(rulesArray, autogenRule.Name)
-	}
-
-	return rulesArray
 }
 
 // SetupWithManager sets up the controller with the Manager.
