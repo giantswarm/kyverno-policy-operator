@@ -8,8 +8,8 @@ clear-envtest-cache: ## Clear envtest ports cache
 test-unit: ginkgo generate fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" $(GINKGO) --cover -r --skip-package=tests ./...
 
-.PHONY: test-all
-test-all: test-unit  ## Run all tests and litner
+.PHONY: test
+test: test-unit  ## Run all tests and litner
 
 ##@ Build Dependencies
 
