@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"os"
+	"strings"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -68,6 +69,7 @@ func main() {
 	var probeAddr string
 	var destinationNamespace string
 	var backgroundMode bool
+	var chartOperatorExcemptedKinds []string
 	// Flags
 	flag.StringVar(&destinationNamespace, "destination-namespace", "", "The namespace where the Kyverno PolicyExceptions will be created. Defaults to GS PolicyException namespace.")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
@@ -81,6 +83,15 @@ func main() {
 	flag.BoolVar(&backgroundMode, "background-mode", false,
 		"Enable PolicyException background mode. If true, failing resources have a status of 'skip' in reports, instead of 'fail'. Defaults to false.",
 	)
+	flag.Func("chart-operator-excempted-kinds",
+		"A comma-separated list of kinds to be excluded from custom ClusterPolicies. This lets the chart-operator ServiceAccount to create protected objects.",
+		func(input string) error {
+			items := strings.Split(input, ",")
+
+			chartOperatorExcemptedKinds = append(chartOperatorExcemptedKinds, items...)
+
+			return nil
+		})
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
@@ -118,6 +129,18 @@ func main() {
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PolicyException")
 		os.Exit(1)
+	}
+
+	if len(chartOperatorExcemptedKinds) != 0 {
+		if err = (&controller.ClusterPolicyReconciler{
+			Client:         mgr.GetClient(),
+			Scheme:         mgr.GetScheme(),
+			ExceptionList:  make(map[string]kyvernov1.ClusterPolicy),
+			ExceptionKinds: chartOperatorExcemptedKinds,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "PolicyException")
+			os.Exit(1)
+		}
 	}
 	//+kubebuilder:scaffold:builder
 

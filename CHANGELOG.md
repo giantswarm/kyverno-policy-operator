@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Add `ClusterPolicy` controller to automatically exclude `chart-operator` ServiceAccount from custom policies.
+
 ## [0.0.3] - 2023-10-24
 
 ### Changed
