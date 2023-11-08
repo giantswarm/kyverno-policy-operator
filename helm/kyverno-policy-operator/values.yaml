@@ -14,6 +14,9 @@ global:
   podSecurityStandards:
     enforced: false
 
+ciliumNetworkPolicy:
+  enabled: true
+
 # We install CRDs through a Job with the helm specific crd folder.
 crds:
   install: true

@@ -7,11 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.0.4] - 2023-10-31
-
 ### Changed
 
 - Add `ClusterPolicy` controller to automatically exclude `chart-operator` ServiceAccount from custom policies.
+- Add `CiliumNetowrkPolicy`.
 
 ## [0.0.3] - 2023-10-24
 
@@ -27,10 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.0.1] - 2023-10-05
 
-- First release of the Kyverno Policy Operator App. 
+- First release of the Kyverno Policy Operator App.
 
-[Unreleased]: https://github.com/giantswarm/kyverno-policy-operator/compare/v0.0.4...HEAD
-[0.0.4]: https://github.com/giantswarm/kyverno-policy-operator/compare/v0.0.3...v0.0.4
+[Unreleased]: https://github.com/giantswarm/kyverno-policy-operator/compare/v0.0.3...HEAD
 [0.0.3]: https://github.com/giantswarm/kyverno-policy-operator/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/giantswarm/kyverno-policy-operator/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/giantswarm/kyverno-policy-operator/releases/tag/v0.0.1
