@@ -167,6 +167,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ needs.gather_facts.outputs.branch }}
+          token: "${{ steps.generate_token.outputs.token }}"
       - name: Prepare release changes
         run: |
           architect prepare-release ${{ env.architect_flags }} --version "${{ needs.gather_facts.outputs.version }}"
