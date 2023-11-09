@@ -102,6 +102,12 @@ jobs:
           download_url: "https://github.com/fsaintjacques/${binary}-tool/archive/${version}.tar.gz"
           tarball_binary_path: "*/src/${binary}"
           smoke_test: "${binary} --version"
+      - name: Generate token
+        id: generate_token
+        uses: tibdex/github-app-token@v1
+        with:
+          app_id: ${{ secrets.HERMES_APP_ID }}
+          private_key: ${{ secrets.HERMES_APP_KEY }}
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Update project.go
@@ -128,19 +134,13 @@ jobs:
         run: |
           file="${{ needs.gather_facts.outputs.project_go_path }}"
           git add $file
-          git commit -m "Bump version to ${{ steps.update_project_go.outputs.new_version }}"
+          git commit -s -m "Bump version to ${{ steps.update_project_go.outputs.new_version }}"
       - name: Push changes
         env:
           REMOTE_REPO: "https://${{ github.actor }}:${{ steps.generate_token.outputs.token }}@github.com/${{ github.repository }}.git"
           branch: "${{ github.ref }}-version-bump"
         run: |
           git push "${REMOTE_REPO}" HEAD:${{ env.branch }}
-      - name: Generate token
-        id: generate_token
-        uses: tibdex/github-app-token@v1
-        with:
-          app_id: ${{ secrets.HERMES_APP_ID }}
-          private_key: ${{ secrets.HERMES_APP_KEY }}
       - name: Create PR
         env:
           GITHUB_TOKEN: "${{ steps.generate_token.outputs.token }}"

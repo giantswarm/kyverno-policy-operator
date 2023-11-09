@@ -221,7 +221,7 @@ jobs:
           version: "${{ needs.gather_facts.outputs.version }}"
         run: |
           git add -A
-          git commit -m "Release v${{ env.version }}"
+          git commit -s -m "Release v${{ env.version }}"
       - name: Push changes
         env:
           remote_repo: "https://${{ github.actor }}:${{ steps.generate_token.outputs.token }}@github.com/${{ github.repository }}.git"
