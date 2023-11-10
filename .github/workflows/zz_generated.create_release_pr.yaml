@@ -1,6 +1,6 @@
 # DO NOT EDIT. Generated with:
 #
-#    devctl@6.16.1-dev
+#    devctl@6.15.1
 #
 name: Create Release PR
 on:
@@ -48,12 +48,6 @@ jobs:
       skip: ${{ steps.pr_exists.outputs.skip }}
       version: ${{ steps.gather_facts.outputs.version }}
     steps:
-      - name: Generate token
-        id: generate_token
-        uses: tibdex/github-app-token@v1
-        with:
-          app_id: ${{ secrets.HERMES_APP_ID }}
-          private_key: ${{ secrets.HERMES_APP_KEY }}
       - name: Gather facts
         id: gather_facts
         run: |
@@ -71,7 +65,7 @@ jobs:
 
           version="$(echo $head | awk -F# '{print $NF}')"
           if [[ $version =~ ^major|minor|patch$ ]]; then
-            gh auth login --with-token <<<$(echo -n ${{ steps.generate_token.outputs.token }})
+            gh auth login --with-token <<<$(echo -n ${{ secrets.TAYLORBOT_GITHUB_ACTION }})
             gh_api_get_latest_release_version()
             {
               if ! version="$(gh api "repos/$1/releases/latest" --jq '.tag_name[1:] | split(".") | .[0], .[1], .[2]')"
@@ -130,7 +124,7 @@ jobs:
       - name: Check if PR exists
         id: pr_exists
         env:
-          GITHUB_TOKEN: "${{ steps.generate_token.outputs.token }}"
+          GITHUB_TOKEN: "${{ secrets.TAYLORBOT_GITHUB_ACTION }}"
         run: |
           head="${{ steps.gather_facts.outputs.branch }}"
           branch="${head#refs/heads/}" # Strip "refs/heads/" prefix.
@@ -157,12 +151,6 @@ jobs:
         with:
           binary: "architect"
           version: "6.11.0"
-      - name: Generate token
-        id: generate_token
-        uses: tibdex/github-app-token@v1
-        with:
-          app_id: ${{ secrets.HERMES_APP_ID }}
-          private_key: ${{ secrets.HERMES_APP_KEY }}
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -220,22 +208,22 @@ jobs:
           fi
       - name: Set up git identity
         run: |
-          git config --local user.email "149080493+hermesherald[bot]@users.noreply.github.com"
-          git config --local user.name "HermesHerald[bot]"
+          git config --local user.email "dev@giantswarm.io"
+          git config --local user.name "taylorbot"
       - name: Create release commit
         env:
           version: "${{ needs.gather_facts.outputs.version }}"
         run: |
           git add -A
-          git commit -s -m "Release v${{ env.version }}"
+          git commit -m "Release v${{ env.version }}"
       - name: Push changes
         env:
-          remote_repo: "https://${{ github.actor }}:${{ steps.generate_token.outputs.token }}@github.com/${{ github.repository }}.git"
+          remote_repo: "https://${{ github.actor }}:${{ secrets.TAYLORBOT_GITHUB_ACTION }}@github.com/${{ github.repository }}.git"
         run: |
           git push "${remote_repo}" HEAD:${{ needs.gather_facts.outputs.branch }}
       - name: Create PR
         env:
-          GITHUB_TOKEN: "${{ steps.generate_token.outputs.token }}"
+          GITHUB_TOKEN: "${{ secrets.TAYLORBOT_GITHUB_ACTION }}"
           base: "${{ needs.gather_facts.outputs.base }}"
           version: "${{ needs.gather_facts.outputs.version }}"
         run: |
