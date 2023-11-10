@@ -263,3 +263,5 @@ replace github.com/nats-io/nats-server/v2 => github.com/nats-io/nats-server/v2 v
 replace golang.org/x/net => golang.org/x/net v0.17.0
 
 replace github.com/nats-io/nkeys => github.com/nats-io/nkeys v0.4.6
+
+replace github.com/valyala/fasthttp => github.com/valyala/fasthttp v1.50.0
