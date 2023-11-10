@@ -280,7 +280,7 @@ require (
 
 replace github.com/gofiber/fiber/v2 => github.com/gofiber/fiber/v2 v2.50.0
 
-replace github.com/nats-io/jwt => github.com/nats-io/jwt v2.5.0+incompatible
+replace github.com/nats-io/jwt => github.com/nats-io/jwt v2.5.3+incompatible
 
 replace github.com/nats-io/nats-server/v2 => github.com/nats-io/nats-server/v2 v2.9.22
 
