@@ -3,7 +3,7 @@ module github.com/giantswarm/kyverno-policy-operator
 go 1.20
 
 require (
-	github.com/go-logr/logr v1.2.4
+	github.com/go-logr/logr v1.3.0
 	github.com/kyverno/kyverno v1.10.3
 	k8s.io/api v0.28.2
 	k8s.io/apimachinery v0.28.2
