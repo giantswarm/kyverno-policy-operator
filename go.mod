@@ -260,7 +260,7 @@ replace github.com/nats-io/jwt => github.com/nats-io/jwt v2.5.3+incompatible
 
 replace github.com/nats-io/nats-server/v2 => github.com/nats-io/nats-server/v2 v2.10.5
 
-replace golang.org/x/net => golang.org/x/net v0.17.0
+replace golang.org/x/net => golang.org/x/net v0.18.0
 
 replace github.com/nats-io/nkeys => github.com/nats-io/nkeys v0.4.6
 
