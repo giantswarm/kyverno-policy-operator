@@ -264,4 +264,4 @@ replace golang.org/x/net => golang.org/x/net v0.18.0
 
 replace github.com/nats-io/nkeys => github.com/nats-io/nkeys v0.4.6
 
-replace github.com/valyala/fasthttp => github.com/valyala/fasthttp v1.50.0
+replace github.com/valyala/fasthttp => github.com/valyala/fasthttp v1.51.0
