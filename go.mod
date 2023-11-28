@@ -218,14 +218,14 @@ require (
 	go.step.sm/crypto v0.36.1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
-	golang.org/x/crypto v0.15.0 // indirect
+	golang.org/x/crypto v0.16.0 // indirect
 	golang.org/x/exp v0.0.0-20231108232855-2478ac86f678 // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.18.0 // indirect
 	golang.org/x/oauth2 v0.14.0 // indirect
 	golang.org/x/sync v0.5.0 // indirect
-	golang.org/x/sys v0.14.0 // indirect
-	golang.org/x/term v0.14.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/term v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.4.0 // indirect
 	golang.org/x/tools v0.15.0 // indirect
@@ -260,7 +260,7 @@ replace github.com/nats-io/jwt => github.com/nats-io/jwt v2.5.3+incompatible
 
 replace github.com/nats-io/nats-server/v2 => github.com/nats-io/nats-server/v2 v2.10.5
 
-replace golang.org/x/net => golang.org/x/net v0.18.0
+replace golang.org/x/net => golang.org/x/net v0.19.0
 
 replace github.com/nats-io/nkeys => github.com/nats-io/nkeys v0.4.6
 
