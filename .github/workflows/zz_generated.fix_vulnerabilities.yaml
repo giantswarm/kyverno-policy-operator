@@ -55,13 +55,8 @@ jobs:
           token: ${{ steps.generate_token.outputs.token }}
           persist-credentials: false
           ref: ${{ needs.gather_facts.outputs.branch }}
-      - name: Install nancy-fixer
-        run: |
-            go install github.com/giantswarm/nancy-fixer@v0.2.0
-            mod upgrade
       - name: Run nancy-fixer fix
-        run: |
-            nancy-fixer fix
+        uses: giantswarm/nancy-fixer@main
       - name: Set up git identity
         run: |
           git config --local user.email "149080493+heraldbot[bot]@users.noreply.github.com"
