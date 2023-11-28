@@ -254,7 +254,7 @@ require (
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
 
-replace github.com/gofiber/fiber/v2 => github.com/gofiber/fiber/v2 v2.50.0
+replace github.com/gofiber/fiber/v2 => github.com/gofiber/fiber/v2 v2.51.0
 
 replace github.com/nats-io/jwt => github.com/nats-io/jwt v2.5.3+incompatible
 
