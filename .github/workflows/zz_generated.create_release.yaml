@@ -1,6 +1,6 @@
 # DO NOT EDIT. Generated with:
 #
-#    devctl@6.15.1
+#    devctl@6.17.2-dev
 #
 name: Create Release
 on:
@@ -93,7 +93,7 @@ jobs:
         uses: giantswarm/install-binary-action@v1.1.0
         with:
           binary: "architect"
-          version: "6.11.0"
+          version: "6.13.0"
       - name: Install semver
         uses: giantswarm/install-binary-action@v1.1.0
         with:
@@ -102,6 +102,12 @@ jobs:
           download_url: "https://github.com/fsaintjacques/${binary}-tool/archive/${version}.tar.gz"
           tarball_binary_path: "*/src/${binary}"
           smoke_test: "${binary} --version"
+      - name: Generate a token
+        id: generate_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.HERALD_APP_ID }}
+          private-key: ${{ secrets.HERALD_APP_KEY }}
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Update project.go
@@ -122,8 +128,8 @@ jobs:
           fi
       - name: Set up git identity
         run: |
-          git config --local user.email "dev@giantswarm.io"
-          git config --local user.name "taylorbot"
+          git config --local user.email "149080493+heraldbot[bot]@users.noreply.github.com"
+          git config --local user.name "HeraldBot[bot]"
       - name: Commit changes
         run: |
           file="${{ needs.gather_facts.outputs.project_go_path }}"
@@ -131,13 +137,13 @@ jobs:
           git commit -m "Bump version to ${{ steps.update_project_go.outputs.new_version }}"
       - name: Push changes
         env:
-          REMOTE_REPO: "https://${{ github.actor }}:${{ secrets.TAYLORBOT_GITHUB_ACTION }}@github.com/${{ github.repository }}.git"
+          REMOTE_REPO: "https://${{ github.actor }}:${{ steps.generate_token.outputs.token }}@github.com/${{ github.repository }}.git"
           branch: "${{ github.ref }}-version-bump"
         run: |
           git push "${REMOTE_REPO}" HEAD:${{ env.branch }}
       - name: Create PR
         env:
-          GITHUB_TOKEN: "${{ secrets.TAYLORBOT_GITHUB_ACTION }}"
+          GITHUB_TOKEN: "${{ steps.generate_token.outputs.token }}"
           base: "${{ github.ref }}"
           branch: "${{ github.ref }}-version-bump"
           version: "${{ needs.gather_facts.outputs.version }}"
@@ -153,9 +159,17 @@ jobs:
     outputs:
       upload_url: ${{ steps.create_gh_release.outputs.upload_url }}
     steps:
+      - name: Generate a token
+        id: generate_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.HERALD_APP_ID }}
+          private-key: ${{ secrets.HERALD_APP_KEY }}
       - name: Checkout code
         uses: actions/checkout@v4
         with:
+          token: ${{ steps.generate_token.outputs.token }}
+          persist-credentials: false
           ref: ${{ github.sha }}
       - name: Ensure correct version in project.go
         if: ${{ needs.gather_facts.outputs.project_go_path != '' && needs.gather_facts.outputs.ref_version != 'true' }}
@@ -171,26 +185,25 @@ jobs:
           path: ./CHANGELOG.md
       - name: Set up git identity
         run: |
-          git config --local user.email "dev@giantswarm.io"
-          git config --local user.name "taylorbot"
+          git config --local user.email "149080493+heraldbot[bot]@users.noreply.github.com"
+          git config --local user.name "HeraldBot[bot]"
       - name: Create tag
         run: |
           version="${{ needs.gather_facts.outputs.version }}"
           git tag "v$version" ${{ github.sha }}
       - name: Push tag
         env:
-          REMOTE_REPO: "https://${{ github.actor }}:${{ secrets.TAYLORBOT_GITHUB_ACTION }}@github.com/${{ github.repository }}.git"
+          REMOTE_REPO: "https://${{ github.actor }}:${{ steps.generate_token.outputs.token }}@github.com/${{ github.repository }}.git"
         run: |
           git push "${REMOTE_REPO}" --tags
       - name: Create release
         id: create_gh_release
-        uses: actions/create-release@v1
+        uses: ncipollo/release-action@v1
         env:
-          GITHUB_TOKEN: "${{ secrets.TAYLORBOT_GITHUB_ACTION }}"
+          GITHUB_TOKEN: "${{ steps.generate_token.outputs.token }}"
         with:
           body: ${{ steps.changelog_reader.outputs.changes }}
-          tag_name: "v${{ needs.gather_facts.outputs.version }}"
-          release_name: "v${{ needs.gather_facts.outputs.version }}"
+          tag: "v${{ needs.gather_facts.outputs.version }}"
 
   create-release-branch:
     name: Create release branch
