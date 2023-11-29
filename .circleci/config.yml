@@ -1,6 +1,6 @@
 version: 2.1
 orbs:
-  architect: giantswarm/architect@4.34.1
+  architect: giantswarm/architect@4.35.5
 
 workflows:
   package-and-push-chart-on-tag:
@@ -13,46 +13,15 @@ workflows:
             tags:
               only: /^v.*/
 
-      - architect/push-to-docker:
-          context: "architect"
-          name: push-kyverno-policy-operator-to-docker
-          image: "docker.io/giantswarm/kyverno-policy-operator"
-          username_envar: "DOCKER_USERNAME"
-          password_envar: "DOCKER_PASSWORD"
+      - architect/push-to-registries:
+          context: architect
+          name: push-to-registries
           requires:
             - go-build
-          # Needed to trigger job also on git tag.
           filters:
             tags:
               only: /^v.*/
 
-      - architect/push-to-docker:
-          context: "architect"
-          name: push-kyverno-policy-operator-to-quay
-          image: "quay.io/giantswarm/kyverno-policy-operator"
-          username_envar: "QUAY_USERNAME"
-          password_envar: "QUAY_PASSWORD"
-          requires:
-            - go-build
-          # Needed to trigger job also on git tag.
-          filters:
-            tags:
-              only: /^v.*/
-
-      - architect/push-to-docker:
-          context: "architect"
-          name: push-kyverno-policy-operator-to-aliyun
-          image: "giantswarm-registry.cn-shanghai.cr.aliyuncs.com/giantswarm/kyverno-policy-operator"
-          username_envar: "ALIYUN_USERNAME"
-          password_envar: "ALIYUN_PASSWORD"
-          requires:
-            - go-build
-          # Needed to trigger job also on git tag.
-          filters:
-            tags:
-              only: /^v.*/
-
-      # Push to App catalogs
       - architect/push-to-app-catalog:
           context: "architect"
           executor: "app-build-suite"
@@ -61,8 +30,7 @@ workflows:
           app_catalog_test: "giantswarm-test-catalog"
           chart: "kyverno-policy-operator"
           requires:
-            - push-kyverno-policy-operator-to-docker
-          # Trigger job on git tag.
+            - push-to-registries
           filters:
             tags:
               only: /^v.*/
@@ -75,8 +43,7 @@ workflows:
           app_catalog_test: "control-plane-test-catalog"
           chart: "kyverno-policy-operator"
           requires:
-            - push-kyverno-policy-operator-to-docker
-          # Trigger job on git tag.
+            - push-to-registries
           filters:
             tags:
               only: /^v.*/
