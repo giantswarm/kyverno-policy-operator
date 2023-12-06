@@ -138,7 +138,7 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.17.2 // indirect
+	github.com/klauspost/compress v1.17.4 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/letsencrypt/boulder v0.0.0-20231110003015-75439eab4b4c // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
@@ -227,7 +227,7 @@ require (
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/term v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	golang.org/x/time v0.4.0 // indirect
+	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.15.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/api v0.150.0 // indirect
@@ -258,7 +258,7 @@ replace github.com/gofiber/fiber/v2 => github.com/gofiber/fiber/v2 v2.51.0
 
 replace github.com/nats-io/jwt => github.com/nats-io/jwt v2.5.3+incompatible
 
-replace github.com/nats-io/nats-server/v2 => github.com/nats-io/nats-server/v2 v2.10.5
+replace github.com/nats-io/nats-server/v2 => github.com/nats-io/nats-server/v2 v2.10.7
 
 replace golang.org/x/net => golang.org/x/net v0.19.0
 
