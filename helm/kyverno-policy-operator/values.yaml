@@ -2,14 +2,14 @@ name: kyverno-policy-operator
 serviceType: managed
 
 image:
-  registry: docker.io
+  registry: gsoci.azurecr.io
   name: giantswarm/kyverno-policy-operator
   pullPolicy: IfNotPresent
 
 # Install PSPs
 global:
   image:
-    registry: "docker.io"
+    registry: "gsoci.azurecr.io"
   # Enable PSPs
   podSecurityStandards:
     enforced: false
@@ -50,7 +50,7 @@ containerSecurityContext:
   allowPrivilegeEscalation: false
   capabilities:
     drop:
-    - ALL
+      - ALL
   privileged: false
   readOnlyRootFilesystem: true
   runAsNonRoot: true
