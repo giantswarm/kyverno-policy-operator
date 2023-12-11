@@ -5,3 +5,6 @@ CVE-2023-0296 until=2023-12-13 # go.etcd.io/etcd/v3@v3.5.8
 CVE-2023-32082 until=2023-12-13 # go.etcd.io/etcd/v3@v3.5.8
 CVE-2019-15562 until=2023-12-13 # github.com/jinzhu/gorm@v1.9.1
 CVE-2020-8561 until=2023-12-14 # k8s.io/apiserver@v0.28.2
+CVE-2023-47630 until=2024-03-10 # github.com/kyverno/kyverno@v1.10.3
+CVE-2023-47090 until=2024-03-10 # github.com/nats-io/nats-server/v2@v2.9.22
+CVE-2023-46737 until=2024-03-10 # github.com/sigstore/cosign@v1.13.1
