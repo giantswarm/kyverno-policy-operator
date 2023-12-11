@@ -253,3 +253,11 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
+
+replace github.com/nats-io/jwt v0.3.2 => github.com/nats-io/jwt v2.5.3+incompatible
+
+replace github.com/nats-io/nkeys v0.4.5 => github.com/nats-io/nkeys v0.4.6
+
+replace github.com/valyala/fasthttp v1.16.0 => github.com/valyala/fasthttp v1.51.0
+
+replace go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.45.0 => go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.46.1
