@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.6] - 2023-12-11
+
 ### Changed
 
 - Configure `gsoci.azurecr.io` as the default container image registry.
@@ -39,7 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First release of the Kyverno Policy Operator App.
 
-[Unreleased]: https://github.com/giantswarm/kyverno-policy-operator/compare/v0.0.5...HEAD
+[Unreleased]: https://github.com/giantswarm/kyverno-policy-operator/compare/v0.0.6...HEAD
+[0.0.6]: https://github.com/giantswarm/kyverno-policy-operator/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/giantswarm/kyverno-policy-operator/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/giantswarm/kyverno-policy-operator/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/giantswarm/kyverno-policy-operator/compare/v0.0.2...v0.0.3
