@@ -253,15 +253,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
-
-replace github.com/gofiber/fiber/v2 => github.com/gofiber/fiber/v2 v2.50.0
-
-replace github.com/nats-io/jwt => github.com/nats-io/jwt v2.5.3+incompatible
-
-replace github.com/nats-io/nats-server/v2 => github.com/nats-io/nats-server/v2 v2.10.5
-
-replace golang.org/x/net => golang.org/x/net v0.18.0
-
-replace github.com/nats-io/nkeys => github.com/nats-io/nkeys v0.4.6
-
-replace github.com/valyala/fasthttp => github.com/valyala/fasthttp v1.50.0
