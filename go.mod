@@ -5,7 +5,7 @@ go 1.21
 toolchain go1.21.3
 
 require (
-	github.com/go-logr/logr v1.3.0
+	github.com/go-logr/logr v1.4.1
 	github.com/kyverno/kyverno v1.11.0
 	k8s.io/api v0.28.3
 	k8s.io/apimachinery v0.28.3
