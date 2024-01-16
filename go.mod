@@ -4,7 +4,7 @@ go 1.21.4
 
 require (
 	github.com/go-logr/logr v1.4.1
-	github.com/kyverno/kyverno v1.11.1
+	github.com/kyverno/kyverno v1.11.3
 	k8s.io/api v0.29.0
 	k8s.io/apimachinery v0.29.0
 	k8s.io/client-go v0.29.0
@@ -257,3 +257,5 @@ replace github.com/nats-io/nkeys v0.4.5 => github.com/nats-io/nkeys v0.4.6
 replace github.com/valyala/fasthttp v1.16.0 => github.com/valyala/fasthttp v1.51.0
 
 replace go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.45.0 => go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.46.1
+
+replace github.com/lestrrat-go/jwx/v2 v2.0.18 => github.com/lestrrat-go/jwx/v2 v2.0.19
