@@ -1,6 +1,6 @@
 module github.com/giantswarm/kyverno-policy-operator
 
-go 1.21.4
+go 1.21.6
 
 require (
 	github.com/go-logr/logr v1.4.1
