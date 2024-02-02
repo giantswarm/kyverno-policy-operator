@@ -28,11 +28,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.branch || github.event.ref }}
+          ref: ${{ inputs.branch || github.ref }}
       - name: Gather facts
         id: gather_facts
         run: |
-          head="${{ inputs.branch || github.event.ref }}"
+          head="${{ inputs.branch || github.ref }}"
           echo "branch=${head}" >> $GITHUB_OUTPUT
 
           head="${head#refs/heads/}" # Strip "refs/heads/" prefix.
