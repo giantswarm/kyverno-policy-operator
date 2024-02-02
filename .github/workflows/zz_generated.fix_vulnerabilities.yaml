@@ -5,7 +5,7 @@
 name: Fix Vulnerabilities
 on:
   schedule:
-    - cron: '0 10 * * *'
+    - cron: '45 11 * * *'
   workflow_dispatch:
     inputs:
       branch:
