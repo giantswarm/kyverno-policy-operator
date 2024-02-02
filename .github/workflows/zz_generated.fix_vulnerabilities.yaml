@@ -5,7 +5,7 @@
 name: Fix Vulnerabilities
 on:
   schedule:
-    - cron: '55 * * * *'
+    - cron: '30 * * * *'
   workflow_dispatch:
     inputs:
       branch:
@@ -33,7 +33,9 @@ jobs:
         id: gather_facts
         run: |
           head="${{ inputs.branch || github.ref }}"
-          echo "branch=${head}" >> $GITHUB_OUTPUT
+          branch="${{ github.ref_name }}"
+
+          echo "branch=${branch}" >> $GITHUB_OUTPUT
 
           head="${head#refs/heads/}" # Strip "refs/heads/" prefix.
           echo "head=${head}" >> $GITHUB_OUTPUT
