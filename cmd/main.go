@@ -131,15 +131,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controller.PolicyManifestReconciler{
-		Client:               mgr.GetClient(),
-		Scheme:               mgr.GetScheme(),
-		DestinationNamespace: destinationNamespace,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "PolicyException")
-		os.Exit(1)
-	}
-
 	if len(chartOperatorExcemptedKinds) != 0 {
 		if err = (&controller.ClusterPolicyReconciler{
 			Client:         mgr.GetClient(),
@@ -150,6 +141,13 @@ func main() {
 			setupLog.Error(err, "unable to create controller", "controller", "PolicyException")
 			os.Exit(1)
 		}
+	}
+	if err = (&controller.PolicyManifestReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "PolicyManifest")
+		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
 
