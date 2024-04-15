@@ -26,6 +26,8 @@ import (
 
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 
+	exceptionRecommender "github.com/giantswarm/exception-recommender/api/v1alpha1"
+
 	giantswarmPolicy "github.com/giantswarm/kyverno-policy-operator/api/v1alpha1"
 	"github.com/giantswarm/kyverno-policy-operator/internal/controller"
 
@@ -57,6 +59,11 @@ func init() {
 	err = kyvernov1.AddToScheme(scheme)
 	if err != nil {
 		setupLog.Error(err, "unable to register kyverno schema")
+	}
+
+	err = exceptionRecommender.AddToScheme(scheme)
+	if err != nil {
+		setupLog.Error(err, "unable to register exception recommender schema")
 	}
 
 	utilruntime.Must(giantswarmPolicy.AddToScheme(scheme))
@@ -135,8 +142,9 @@ func main() {
 		Client:               mgr.GetClient(),
 		Scheme:               mgr.GetScheme(),
 		DestinationNamespace: destinationNamespace,
+		Background:           backgroundMode,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "PolicyException")
+		setupLog.Error(err, "unable to create controller", "controller", "PolicyManifest")
 		os.Exit(1)
 	}
 

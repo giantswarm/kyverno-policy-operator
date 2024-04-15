@@ -80,7 +80,7 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	// Set kpe destination namespace.
 	kpe.Namespace = r.DestinationNamespace
 	// Set kpe name.
-	kpe.Name = fmt.Sprintf("GS-KPO-%s-exceptions", polman.ObjectMeta.Name)
+	kpe.Name = fmt.Sprintf("gs-kpo-%s-exceptions", polman.ObjectMeta.Name)
 	// Set labels.
 	kpe.Labels = make(map[string]string)
 	kpe.Labels["app.kubernetes.io/managed-by"] = "kyverno-policy-operator"
@@ -88,9 +88,9 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	kpe.Spec.Background = &r.Background
 
-	allTargets := []giantswarmPolicy.Target{}
-	copy(allTargets, polman.Spec.Exceptions[:])
-	copy(allTargets[len(polman.Spec.Exceptions):], polman.Spec.AutomatedExceptions[:])
+	allTargets := make([]giantswarmPolicy.Target, len(polman.Spec.Exceptions)+len(polman.Spec.AutomatedExceptions))
+	copy(allTargets, polman.Spec.Exceptions)
+	copy(allTargets[len(polman.Spec.Exceptions):], polman.Spec.AutomatedExceptions)
 
 	policyMap := make(map[string]kyvernov1.ClusterPolicy)
 	var kyvernoPolicy kyvernov1.ClusterPolicy
@@ -128,5 +128,6 @@ func (r *PolicyManifestReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		// Uncomment the following line adding a pointer to an instance of the controlled resource as an argument
 		// For().
+		For(&exceptionRecommender.PolicyManifest{}).
 		Complete(r)
 }
