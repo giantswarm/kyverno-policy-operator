@@ -1,18 +1,32 @@
 package controller
 
 import (
-	"github.com/giantswarm/exception-recommender/api/v1alpha1"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 	kyvernov2alpha1 "github.com/kyverno/kyverno/api/kyverno/v2alpha1"
-	kyvernov2beta1 "github.com/kyverno/kyverno/api/kyverno/v2beta1"
 
 	giantswarmPolicy "github.com/giantswarm/kyverno-policy-operator/api/v1alpha1"
 )
 
 // translateTargetsToResourceFilters takes a Giant Swarm PolicyException and creates the necessary Kyverno ResourceFilters
-func translateTargetsToResourceFilters(polex giantswarmPolicy.PolicyException) kyvernov1.ResourceFilters {
+/*func translateTargetsToResourceFiltersOld(polex giantswarmPolicy.PolicyException) kyvernov1.ResourceFilters {
 	resourceFilters := kyvernov1.ResourceFilters{}
 	for _, target := range polex.Spec.Targets {
+		translatedResourceFilter := kyvernov1.ResourceFilter{
+			ResourceDescription: kyvernov1.ResourceDescription{
+				Namespaces: target.Namespaces,
+				Names:      target.Names,
+				Kinds:      generateExceptionKinds(target.Kind),
+			},
+		}
+		resourceFilters = append(resourceFilters, translatedResourceFilter)
+	}
+	return resourceFilters
+}*/
+
+// translateTargetsToResourceFilters takes a Giant Swarm Policy API target array and creates the necessary Kyverno ResourceFilters
+func translateTargetsToResourceFilters(targets []giantswarmPolicy.Target) kyvernov1.ResourceFilters {
+	resourceFilters := kyvernov1.ResourceFilters{}
+	for _, target := range targets {
 		translatedResourceFilter := kyvernov1.ResourceFilter{
 			ResourceDescription: kyvernov1.ResourceDescription{
 				Namespaces: target.Namespaces,
@@ -50,28 +64,6 @@ func generatePolicyRules(kyvernoPolicy kyvernov1.ClusterPolicy) []string {
 	}
 
 	return rulesArray
-}
-
-func translatePolmanExceptionsToKyvernoExceptions(polman v1alpha1.PolicyManifest) []kyvernov2beta1.Exception {
-	var exceptions []kyvernov2beta1.Exception
-
-	for _, exception := range append(polman.Spec.Exceptions, polman.Spec.AutomatedExceptions...) {
-		kyvernoException := kyvernov2beta1.Exception{
-			ResourceSelectors: []kyvernov2beta1.ResourceSelector{
-				{
-					Selector: kyvernov2beta1.ResourceDescription{
-						Kinds:      []string{exception.Kind},
-						Namespaces: exception.Namespaces,
-						Names:      exception.Names,
-					},
-				},
-			},
-		}
-
-		exceptions = append(exceptions, kpe)
-	}
-
-	return exceptions
 }
 
 // unorderedEqual takes two Kyverno Exception arrays and checks if they are equal even if they are not ordered the same

@@ -114,7 +114,7 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		policyException.Spec.Background = &r.Background
 
 		// Set .Spec.Match.Any targets
-		policyException.Spec.Match.Any = translateTargetsToResourceFilters(gsPolicyException)
+		policyException.Spec.Match.Any = translateTargetsToResourceFilters(gsPolicyException.Spec.Targets)
 
 		// Set .Spec.Exceptions
 		newExceptions := translatePoliciesToExceptions(policyMap)

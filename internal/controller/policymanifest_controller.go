@@ -22,13 +22,17 @@ import (
 
 	exceptionRecommender "github.com/giantswarm/exception-recommender/api/v1alpha1"
 	"github.com/go-logr/logr"
+	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 	kyvernov2beta1 "github.com/kyverno/kyverno/api/kyverno/v2beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	giantswarmPolicy "github.com/giantswarm/kyverno-policy-operator/api/v1alpha1"
 )
 
 // PolicyManifestReconciler reconciles a PolicyManifest object
@@ -37,6 +41,7 @@ type PolicyManifestReconciler struct {
 	Scheme               *runtime.Scheme
 	Log                  logr.Logger
 	DestinationNamespace string
+	Background           bool
 }
 
 //+kubebuilder:rbac:groups=giantswarm.io,resources=policymanifests,verbs=get;list;watch;create;update;patch;delete
@@ -81,15 +86,42 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	kpe.Labels["app.kubernetes.io/managed-by"] = "kyverno-policy-operator"
 	kpe.Labels["policy.giantswarm.io/policy"] = polman.ObjectMeta.Labels["policy.giantswarm.io/policy"]
 
-	// Set owner references.
-	if err := controllerutil.SetControllerReference(&polman, &kpe, r.Scheme); err != nil {
+	kpe.Spec.Background = &r.Background
+
+	allTargets := []giantswarmPolicy.Target{}
+	copy(allTargets, polman.Spec.Exceptions[:])
+	copy(allTargets[len(polman.Spec.Exceptions):], polman.Spec.AutomatedExceptions[:])
+
+	policyMap := make(map[string]kyvernov1.ClusterPolicy)
+	var kyvernoPolicy kyvernov1.ClusterPolicy
+	if err := r.Get(ctx, types.NamespacedName{Namespace: "", Name: polman.Name}, &kyvernoPolicy); err != nil {
+		// Error fetching the report
+		log.Log.Error(err, "unable to fetch Kyverno Policy")
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	policyMap[polman.Name] = kyvernoPolicy
+
+	newExceptions := translatePoliciesToExceptions(policyMap)
+
+	// create or update a Kyverno PolicyException.
+
+	if op, err := controllerutil.CreateOrUpdate(ctx, r.Client, &kpe, func() error {
+
+		kpe.Spec.Match.Any = translateTargetsToResourceFilters(allTargets)
+
+		kpe.Spec.Exceptions = newExceptions
+
+		return nil
+	}); err != nil {
+		log.Log.Error(err, fmt.Sprintf("Reconciliation failed for PolicyException %s", kpe.Name))
 		return ctrl.Result{}, err
+	} else {
+		log.Log.Info(fmt.Sprintf("PolicyException %s: %s", kpe.Name, op))
 	}
 
 	return ctrl.Result{}, nil
 }
-
-// create or update
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *PolicyManifestReconciler) SetupWithManager(mgr ctrl.Manager) error {
