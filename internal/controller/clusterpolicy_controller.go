@@ -95,8 +95,7 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 							policyException.Name = "chart-operator-generated-sa-bypass"
 
 							// Set labels
-							policyException.Labels = make(map[string]string)
-							policyException.Labels["app.kubernetes.io/managed-by"] = "kyverno-policy-operator"
+							policyException.Labels = generateLabels()
 
 							// Set Background behaviour to false since this Polex is using Subjects
 							background := false

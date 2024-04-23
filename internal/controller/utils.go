@@ -6,21 +6,19 @@ import (
 	kyvernov2alpha1 "github.com/kyverno/kyverno/api/kyverno/v2alpha1"
 )
 
-// translateTargetsToResourceFilters takes a Giant Swarm PolicyException and creates the necessary Kyverno ResourceFilters
-/*func translateTargetsToResourceFiltersOld(polex policyAPI.PolicyException) kyvernov1.ResourceFilters {
-	resourceFilters := kyvernov1.ResourceFilters{}
-	for _, target := range polex.Spec.Targets {
-		translatedResourceFilter := kyvernov1.ResourceFilter{
-			ResourceDescription: kyvernov1.ResourceDescription{
-				Namespaces: target.Namespaces,
-				Names:      target.Names,
-				Kinds:      generateExceptionKinds(target.Kind),
-			},
-		}
-		resourceFilters = append(resourceFilters, translatedResourceFilter)
+const (
+	ComponentName = "kyverno-policy-operator"
+	ManagedBy     = "app.kubernetes.io/managed-by"
+)
+
+// generateLabels generates the labels for the Kyverno Policy Exception.
+
+func generateLabels() map[string]string {
+	labels := map[string]string{
+		ManagedBy: ComponentName,
 	}
-	return resourceFilters
-}*/
+	return labels
+}
 
 // translateTargetsToResourceFilters takes a Giant Swarm Policy API target array and creates the necessary Kyverno ResourceFilters
 func translateTargetsToResourceFilters(targets []policyAPI.Target) kyvernov1.ResourceFilters {
@@ -29,7 +27,7 @@ func translateTargetsToResourceFilters(targets []policyAPI.Target) kyvernov1.Res
 		translatedResourceFilter := kyvernov1.ResourceFilter{
 			ResourceDescription: kyvernov1.ResourceDescription{
 				Namespaces: target.Namespaces,
-				Names:      target.Names,
+				Names:      addNameWildcard(target.Names),
 				Kinds:      generateExceptionKinds(target.Kind),
 			},
 		}
@@ -37,6 +35,21 @@ func translateTargetsToResourceFilters(targets []policyAPI.Target) kyvernov1.Res
 	}
 	return resourceFilters
 }
+
+// addNameWildcard appends a wildcard to a target name if it does not already have one.
+
+func addNameWildcard(names []string) []string {
+	newNames := []string{}
+	for _, name := range names {
+		if name[len(name)-1:] != "*" {
+			name = name + "*"
+		}
+		newNames = append(newNames, name)
+	}
+	return newNames
+}
+
+// addLa
 
 // translatePoliciesToExceptions takes a Kyverno ClusterPolicy array and transforms it into a Kyverno Exception array
 func translatePoliciesToExceptions(policies map[string]kyvernov1.ClusterPolicy) []kyvernov2alpha1.Exception {

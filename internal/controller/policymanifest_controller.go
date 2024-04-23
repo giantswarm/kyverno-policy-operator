@@ -73,18 +73,16 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	// TODO(user): your logic here
 
-	// kpe stands for Kyverno Policy Exception
-	kpe := kyvernov2beta1.PolicyException{}
-	// Set kpe destination namespace.
-	kpe.Namespace = r.DestinationNamespace
-	// Set kpe name.
-	kpe.Name = fmt.Sprintf("gs-kpo-%s-exceptions", polman.ObjectMeta.Name)
+	kyvernoPolicyException := kyvernov2beta1.PolicyException{}
+	// Set kyvernoPolicyException destination namespace.
+	kyvernoPolicyException.Namespace = r.DestinationNamespace
+	// Set kyvernoPolicyException name.
+	kyvernoPolicyException.Name = fmt.Sprintf("gs-kpo-%s-exceptions", polman.ObjectMeta.Name)
 	// Set labels.
-	kpe.Labels = make(map[string]string)
-	kpe.Labels["app.kubernetes.io/managed-by"] = "kyverno-policy-operator"
-	kpe.Labels["policy.giantswarm.io/policy"] = polman.ObjectMeta.Labels["policy.giantswarm.io/policy"]
+	kyvernoPolicyException.Labels = generateLabels()
+	kyvernoPolicyException.Labels["policy.giantswarm.io/policy"] = polman.ObjectMeta.Labels["policy.giantswarm.io/policy"]
 
-	kpe.Spec.Background = &r.Background
+	kyvernoPolicyException.Spec.Background = &r.Background
 
 	allTargets := make([]policyAPI.Target, len(polman.Spec.Exceptions)+len(polman.Spec.AutomatedExceptions))
 	copy(allTargets, polman.Spec.Exceptions)
@@ -104,18 +102,18 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	// create or update a Kyverno PolicyException.
 
-	if op, err := controllerutil.CreateOrUpdate(ctx, r.Client, &kpe, func() error {
+	if op, err := controllerutil.CreateOrUpdate(ctx, r.Client, &kyvernoPolicyException, func() error {
 
-		kpe.Spec.Match.Any = translateTargetsToResourceFilters(allTargets)
+		kyvernoPolicyException.Spec.Match.Any = translateTargetsToResourceFilters(allTargets)
 
-		kpe.Spec.Exceptions = newExceptions
+		kyvernoPolicyException.Spec.Exceptions = newExceptions
 
 		return nil
 	}); err != nil {
-		log.Log.Error(err, fmt.Sprintf("Reconciliation failed for PolicyException %s", kpe.Name))
+		log.Log.Error(err, fmt.Sprintf("Reconciliation failed for PolicyException %s", kyvernoPolicyException.Name))
 		return ctrl.Result{}, err
 	} else {
-		log.Log.Info(fmt.Sprintf("PolicyException %s: %s", kpe.Name, op))
+		log.Log.Info(fmt.Sprintf("PolicyException %s: %s", kyvernoPolicyException.Name, op))
 	}
 
 	return ctrl.Result{}, nil

@@ -99,8 +99,7 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	policyException.Name = gsPolicyException.Name
 
 	// Set labels
-	policyException.Labels = make(map[string]string)
-	policyException.Labels["app.kubernetes.io/managed-by"] = "kyverno-policy-operator"
+	policyException.Labels = generateLabels()
 	// Set ownerReferences
 	if err := controllerutil.SetControllerReference(&gsPolicyException, &policyException, r.Scheme); err != nil {
 		return ctrl.Result{}, err
