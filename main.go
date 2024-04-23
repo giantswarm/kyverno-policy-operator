@@ -26,9 +26,8 @@ import (
 
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 
-	exceptionRecommender "github.com/giantswarm/exception-recommender/api/v1alpha1"
+	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
 
-	giantswarmPolicy "github.com/giantswarm/kyverno-policy-operator/api/v1alpha1"
 	"github.com/giantswarm/kyverno-policy-operator/internal/controller"
 
 	kyvernov2beta1 "github.com/kyverno/kyverno/api/kyverno/v2beta1"
@@ -61,12 +60,7 @@ func init() {
 		setupLog.Error(err, "unable to register kyverno schema")
 	}
 
-	err = exceptionRecommender.AddToScheme(scheme)
-	if err != nil {
-		setupLog.Error(err, "unable to register exception recommender schema")
-	}
-
-	utilruntime.Must(giantswarmPolicy.AddToScheme(scheme))
+	utilruntime.Must(policyAPI.AddToScheme(scheme))
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }

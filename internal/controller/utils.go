@@ -1,14 +1,13 @@
 package controller
 
 import (
+	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 	kyvernov2alpha1 "github.com/kyverno/kyverno/api/kyverno/v2alpha1"
-
-	giantswarmPolicy "github.com/giantswarm/kyverno-policy-operator/api/v1alpha1"
 )
 
 // translateTargetsToResourceFilters takes a Giant Swarm PolicyException and creates the necessary Kyverno ResourceFilters
-/*func translateTargetsToResourceFiltersOld(polex giantswarmPolicy.PolicyException) kyvernov1.ResourceFilters {
+/*func translateTargetsToResourceFiltersOld(polex policyAPI.PolicyException) kyvernov1.ResourceFilters {
 	resourceFilters := kyvernov1.ResourceFilters{}
 	for _, target := range polex.Spec.Targets {
 		translatedResourceFilter := kyvernov1.ResourceFilter{
@@ -24,7 +23,7 @@ import (
 }*/
 
 // translateTargetsToResourceFilters takes a Giant Swarm Policy API target array and creates the necessary Kyverno ResourceFilters
-func translateTargetsToResourceFilters(targets []giantswarmPolicy.Target) kyvernov1.ResourceFilters {
+func translateTargetsToResourceFilters(targets []policyAPI.Target) kyvernov1.ResourceFilters {
 	resourceFilters := kyvernov1.ResourceFilters{}
 	for _, target := range targets {
 		translatedResourceFilter := kyvernov1.ResourceFilter{

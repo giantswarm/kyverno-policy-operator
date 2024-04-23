@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	exceptionRecommender "github.com/giantswarm/exception-recommender/api/v1alpha1"
+	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
 	"github.com/go-logr/logr"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 	kyvernov2beta1 "github.com/kyverno/kyverno/api/kyverno/v2beta1"
@@ -31,8 +31,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	giantswarmPolicy "github.com/giantswarm/kyverno-policy-operator/api/v1alpha1"
 )
 
 // PolicyManifestReconciler reconciles a PolicyManifest object
@@ -60,7 +58,7 @@ type PolicyManifestReconciler struct {
 func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
-	var polman exceptionRecommender.PolicyManifest
+	var polman policyAPI.PolicyManifest
 
 	if err := r.Get(ctx, req.NamespacedName, &polman); err != nil {
 		// Error fetching the policy manifest
@@ -88,7 +86,7 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	kpe.Spec.Background = &r.Background
 
-	allTargets := make([]giantswarmPolicy.Target, len(polman.Spec.Exceptions)+len(polman.Spec.AutomatedExceptions))
+	allTargets := make([]policyAPI.Target, len(polman.Spec.Exceptions)+len(polman.Spec.AutomatedExceptions))
 	copy(allTargets, polman.Spec.Exceptions)
 	copy(allTargets[len(polman.Spec.Exceptions):], polman.Spec.AutomatedExceptions)
 
@@ -128,6 +126,6 @@ func (r *PolicyManifestReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		// Uncomment the following line adding a pointer to an instance of the controlled resource as an argument
 		// For().
-		For(&exceptionRecommender.PolicyManifest{}).
+		For(&policyAPI.PolicyManifest{}).
 		Complete(r)
 }

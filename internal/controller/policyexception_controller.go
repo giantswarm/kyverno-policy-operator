@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -28,8 +29,6 @@ import (
 	kyvernov2beta1 "github.com/kyverno/kyverno/api/kyverno/v2beta1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
-	giantswarmPolicy "github.com/giantswarm/kyverno-policy-operator/api/v1alpha1"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -55,7 +54,7 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	_ = log.FromContext(ctx)
 	_ = r.Log.WithValues("policyexception", req.NamespacedName)
 
-	var gsPolicyException giantswarmPolicy.PolicyException
+	var gsPolicyException policyAPI.PolicyException
 
 	if err := r.Get(ctx, req.NamespacedName, &gsPolicyException); err != nil {
 		// Error fetching the report
@@ -177,7 +176,7 @@ func generateExceptionKinds(resourceKind string) []string {
 // SetupWithManager sets up the controller with the Manager.
 func (r *PolicyExceptionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&giantswarmPolicy.PolicyException{}).
+		For(&policyAPI.PolicyException{}).
 		Owns(&kyvernov2beta1.PolicyException{}).
 		Complete(r)
 }
