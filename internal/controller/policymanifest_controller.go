@@ -40,6 +40,7 @@ type PolicyManifestReconciler struct {
 	Log                  logr.Logger
 	DestinationNamespace string
 	Background           bool
+	PolicyCache          map[string]kyvernov1.ClusterPolicy
 }
 
 //+kubebuilder:rbac:groups=giantswarm.io,resources=policymanifests,verbs=get;list;watch;create;update;patch;delete

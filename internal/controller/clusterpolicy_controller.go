@@ -43,6 +43,7 @@ type ClusterPolicyReconciler struct {
 	Log            logr.Logger
 	ExceptionList  map[string]kyvernov1.ClusterPolicy
 	ExceptionKinds []string
+	PolicyCache    map[string]kyvernov1.ClusterPolicy
 }
 
 //+kubebuilder:rbac:groups=kyverno.io,resources=clusterpolicies,verbs=get;list;watch;create;update;patch;delete
@@ -53,9 +54,8 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	_ = log.FromContext(ctx)
 	_ = r.Log.WithValues("clusterpolicy", req.NamespacedName)
 
-	var clusterPolicy kyvernov1.ClusterPolicy
-
-	if err := r.Get(ctx, req.NamespacedName, &clusterPolicy); err != nil {
+	clusterPolicy, err := r.GetClusterPolicy(ctx, req.NamespacedName.Name)
+	if err != nil {
 		// Error fetching the report
 
 		// Check if the ClusterPolicy was deleted
@@ -173,6 +173,26 @@ func templateResourceFilters(kinds []string) kyvernov1.ResourceFilters {
 	resourceFilters = append(resourceFilters, trasnlatedResourceFilter)
 
 	return resourceFilters
+}
+
+func (r *ClusterPolicyReconciler) GetClusterPolicy(ctx context.Context, policyName string) (kyvernov1.ClusterPolicy, error) {
+	// Check if the policy is in the cache
+	if policy, ok := r.PolicyCache[policyName]; ok {
+		return policy, nil
+	}
+
+	// If it's not in the cache, query the policy
+	var clusterPolicy kyvernov1.ClusterPolicy
+	if err := r.Get(ctx, client.ObjectKey{Name: policyName}, &clusterPolicy); err != nil {
+		// If there's an error querying the policy, return the error
+		return clusterPolicy, err
+	}
+
+	// Put the queried policy in the cache
+	r.PolicyCache[policyName] = clusterPolicy
+
+	// Return the queried policy
+	return clusterPolicy, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
