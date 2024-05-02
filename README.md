@@ -34,7 +34,7 @@ spec:
 This Policy Exception configuration will be detected by the Kyverno Policy Operator, which will create a corresponding Kyverno Policy Exception resource:
 
 ```yaml
-apiVersion: kyverno.io/v2alpha1
+apiVersion: kyverno.io/v2beta1
 kind: PolicyException
 metadata:
   labels:
