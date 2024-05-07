@@ -54,8 +54,9 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	_ = log.FromContext(ctx)
 	_ = r.Log.WithValues("clusterpolicy", req.NamespacedName)
 
-	clusterPolicy, err := r.GetClusterPolicy(ctx, req.NamespacedName.Name)
-	if err != nil {
+	var clusterPolicy kyvernov1.ClusterPolicy
+
+	if err := r.Get(ctx, req.NamespacedName, &clusterPolicy); err != nil {
 		// Error fetching the report
 
 		// Check if the ClusterPolicy was deleted
@@ -66,7 +67,10 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 		log.Log.Error(err, "unable to fetch ClusterPolicy")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
+
 	}
+
+	r.PolicyCache[clusterPolicy.Name] = clusterPolicy
 
 	// Check if the Policy has validate rules
 	if !clusterPolicy.HasValidate() {
@@ -157,7 +161,7 @@ func (r *ClusterPolicyReconciler) CreateOrUpdate(ctx context.Context, obj client
 
 func templateResourceFilters(kinds []string) kyvernov1.ResourceFilters {
 	var resourceFilters kyvernov1.ResourceFilters
-	trasnlatedResourceFilter := kyvernov1.ResourceFilter{
+	translatedResourceFilter := kyvernov1.ResourceFilter{
 		UserInfo: kyvernov1.UserInfo{
 			Subjects: []rbacv1.Subject{{
 				Kind:      "ServiceAccount",
@@ -170,29 +174,9 @@ func templateResourceFilters(kinds []string) kyvernov1.ResourceFilters {
 			Operations: []kyvernov1.AdmissionOperation{"CREATE", "UPDATE"},
 		},
 	}
-	resourceFilters = append(resourceFilters, trasnlatedResourceFilter)
+	resourceFilters = append(resourceFilters, translatedResourceFilter)
 
 	return resourceFilters
-}
-
-func (r *ClusterPolicyReconciler) GetClusterPolicy(ctx context.Context, policyName string) (kyvernov1.ClusterPolicy, error) {
-	// Check if the policy is in the cache
-	if policy, ok := r.PolicyCache[policyName]; ok {
-		return policy, nil
-	}
-
-	// If it's not in the cache, query the policy
-	var clusterPolicy kyvernov1.ClusterPolicy
-	if err := r.Get(ctx, client.ObjectKey{Name: policyName}, &clusterPolicy); err != nil {
-		// If there's an error querying the policy, return the error
-		return clusterPolicy, err
-	}
-
-	// Put the queried policy in the cache
-	r.PolicyCache[policyName] = clusterPolicy
-
-	// Return the queried policy
-	return clusterPolicy, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
