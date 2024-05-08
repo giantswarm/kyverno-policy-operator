@@ -26,7 +26,6 @@ import (
 	kyvernov2beta1 "github.com/kyverno/kyverno/api/kyverno/v2beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -83,10 +82,11 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	policyMap := make(map[string]kyvernov1.ClusterPolicy)
 
 	var kyvernoPolicy kyvernov1.ClusterPolicy
-	if err := r.Get(ctx, types.NamespacedName{Namespace: "", Name: polman.Name}, &kyvernoPolicy); err != nil {
-		// Error fetching the report
-		log.Log.Error(err, "unable to fetch Kyverno Policy")
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+	var ok bool
+
+	if kyvernoPolicy, ok = r.PolicyCache[polman.Name]; !ok {
+		log.Log.Error(fmt.Errorf("Policy %s not found in cache", polman.Name), "unable to fetch Kyverno Policy from cache")
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	policyMap[polman.Name] = kyvernoPolicy
