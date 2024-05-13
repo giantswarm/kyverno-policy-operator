@@ -5,6 +5,7 @@ go 1.21.6
 require (
 	github.com/giantswarm/policy-api v0.0.0-20240417210147-d47ea9eb220d
 	github.com/go-logr/logr v1.4.1
+	github.com/google/uuid v1.6.0
 	github.com/kyverno/kyverno v1.11.4
 	github.com/onsi/ginkgo/v2 v2.15.0
 	github.com/onsi/gomega v1.32.0
@@ -129,7 +130,6 @@ require (
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/pprof v0.0.0-20231023181126-ff6d637d2a7b // indirect
 	github.com/google/s2a-go v0.1.7 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect

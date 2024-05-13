@@ -25,6 +25,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	tests "github.com/giantswarm/kyverno-policy-operator/tests"
+
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,6 +51,8 @@ func TestControllers(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+
+	tests.GetEnvOrSkip("KUBEBUILDER_ASSETS")
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
