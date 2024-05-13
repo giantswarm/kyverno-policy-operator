@@ -30,6 +30,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	utils "github.com/giantswarm/kyverno-policy-operator/internal/utils"
 )
 
 // PolicyManifestReconciler reconciles a PolicyManifest object
@@ -40,6 +42,7 @@ type PolicyManifestReconciler struct {
 	DestinationNamespace string
 	Background           bool
 	PolicyCache          map[string]kyvernov1.ClusterPolicy
+	MaxJitterPercent     int
 }
 
 //+kubebuilder:rbac:groups=giantswarm.io,resources=policymanifests,verbs=get;list;watch;create;update;patch;delete
@@ -109,7 +112,7 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		log.Log.Info(fmt.Sprintf("PolicyException %s: %s", kyvernoPolicyException.Name, op))
 	}
 
-	return ctrl.Result{}, nil
+	return utils.JitterRequeue(DefaultRequeueDuration, r.MaxJitterPercent, r.Log), nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

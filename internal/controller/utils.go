@@ -1,10 +1,14 @@
 package controller
 
 import (
+	"time"
+
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 	kyvernov2alpha1 "github.com/kyverno/kyverno/api/kyverno/v2alpha1"
 )
+
+var DefaultRequeueDuration = (time.Minute * 5)
 
 const (
 	ComponentName = "kyverno-policy-operator"
@@ -48,8 +52,6 @@ func addNameWildcard(names []string) []string {
 	}
 	return newNames
 }
-
-// addLa
 
 // translatePoliciesToExceptions takes a Kyverno ClusterPolicy array and transforms it into a Kyverno Exception array
 func translatePoliciesToExceptions(policies map[string]kyvernov1.ClusterPolicy) []kyvernov2alpha1.Exception {

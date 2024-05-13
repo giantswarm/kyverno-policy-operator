@@ -35,6 +35,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/giantswarm/kyverno-policy-operator/internal/utils"
 )
 
 // PolicyExceptionReconciler reconciles a PolicyException object
@@ -44,6 +46,7 @@ type PolicyExceptionReconciler struct {
 	Log                  logr.Logger
 	DestinationNamespace string
 	Background           bool
+	MaxJitterPercent     int
 }
 
 //+kubebuilder:rbac:groups=policy.giantswarm.io,resources=policyexceptions,verbs=get;list;watch;create;update;patch;delete
@@ -128,7 +131,7 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		log.Log.Info(fmt.Sprintf("PolicyException %s: %s", policyException.Name, op))
 	}
 
-	return ctrl.Result{}, nil
+	return utils.JitterRequeue(DefaultRequeueDuration, r.MaxJitterPercent, r.Log), nil
 }
 
 // CreateOrUpdate attempts first to patch the object given but if an IsNotFound error
