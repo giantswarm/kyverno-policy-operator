@@ -34,16 +34,19 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/giantswarm/kyverno-policy-operator/internal/utils"
 )
 
 // ClusterPolicyReconciler reconciles a ClusterPolicy object
 type ClusterPolicyReconciler struct {
 	client.Client
-	Scheme         *runtime.Scheme
-	Log            logr.Logger
-	ExceptionList  map[string]kyvernov1.ClusterPolicy
-	ExceptionKinds []string
-	PolicyCache    map[string]kyvernov1.ClusterPolicy
+	Scheme           *runtime.Scheme
+	Log              logr.Logger
+	ExceptionList    map[string]kyvernov1.ClusterPolicy
+	ExceptionKinds   []string
+	PolicyCache      map[string]kyvernov1.ClusterPolicy
+	MaxJitterPercent int
 }
 
 //+kubebuilder:rbac:groups=kyverno.io,resources=clusterpolicies,verbs=get;list;watch;create;update;patch;delete
@@ -70,7 +73,11 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	}
 
-	r.PolicyCache[clusterPolicy.Name] = clusterPolicy
+	if !clusterPolicy.DeletionTimestamp.IsZero() {
+		delete(r.PolicyCache, clusterPolicy.Name)
+	} else {
+		r.PolicyCache[clusterPolicy.Name] = clusterPolicy
+	}
 
 	// Check if the Policy has validate rules
 	if !clusterPolicy.HasValidate() {
@@ -135,7 +142,7 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 	}
 
-	return ctrl.Result{}, nil
+	return utils.JitterRequeue(DefaultRequeueDuration, r.MaxJitterPercent, r.Log), nil
 }
 
 // CreateOrUpdate attempts first to patch the object given but if an IsNotFound error

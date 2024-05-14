@@ -65,7 +65,9 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// TODO(user): your logic here
+	if r.DestinationNamespace == "" {
+		r.DestinationNamespace = polman.Namespace
+	}
 
 	kyvernoPolicyException := kyvernov2beta1.PolicyException{}
 	// Set kyvernoPolicyException destination namespace.
