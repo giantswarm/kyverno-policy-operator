@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"strings"
 
@@ -99,6 +100,11 @@ func main() {
 	flag.IntVar(&maxJitterPercent, "max-jitter-percent", 10, "Spreads out re-queue interval by +/- this amount to spread load.")
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
+
+	if destinationNamespace == "" {
+		fmt.Println("Error: The destination-namespace flag is required")
+		os.Exit(2) // The flag package uses 2 as the exit code when the program is terminated due to a flag parsing error
+	}
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
