@@ -55,7 +55,6 @@ type ClusterPolicyReconciler struct {
 
 func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
-	fmt.Println("CLUSTERPOLICY_CONTROLLER CHECK XYXYXYXY")
 	_ = r.Log.WithValues("clusterpolicy", req.NamespacedName)
 
 	var clusterPolicy kyvernov1.ClusterPolicy
@@ -74,18 +73,12 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	}
 
-	fmt.Println("CLUSTERPOLICY_CONTROLLER CHECK AAA")
-
 	if !clusterPolicy.DeletionTimestamp.IsZero() {
 		delete(r.PolicyCache, clusterPolicy.Name)
-		fmt.Println("CLUSTERPOLICY_CONTROLLER CHECK DELETE IF DELETE IF DELETE")
 	} else {
 		r.PolicyCache[clusterPolicy.Name] = clusterPolicy
-		fmt.Printf("CLUSTERPOLICY_CONTROLLER CHECK %s\n", clusterPolicy.Name)
 		r.Log.Info(fmt.Sprintf("ClusterPolicy %s added to cache", clusterPolicy.Name))
 	}
-
-	fmt.Println("CLUSTERPOLICY_CONTROLLER CHECK BBB")
 
 	if len(r.ExceptionKinds) != 0 {
 		// Check if the Policy has validate rules

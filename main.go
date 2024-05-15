@@ -74,6 +74,8 @@ func main() {
 	var backgroundMode bool
 	var chartOperatorExcemptedKinds []string
 	var maxJitterPercent int
+	policyCache := make(map[string]kyvernov1.ClusterPolicy)
+
 	// Flags
 	flag.StringVar(&destinationNamespace, "destination-namespace", "", "The namespace where the Kyverno PolicyExceptions will be created. Defaults to GS PolicyException namespace.")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
@@ -146,7 +148,7 @@ func main() {
 		Scheme:               mgr.GetScheme(),
 		DestinationNamespace: destinationNamespace,
 		Background:           backgroundMode,
-		PolicyCache:          make(map[string]kyvernov1.ClusterPolicy),
+		PolicyCache:          policyCache,
 		MaxJitterPercent:     maxJitterPercent,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PolicyManifest")
@@ -158,7 +160,7 @@ func main() {
 		Scheme:           mgr.GetScheme(),
 		ExceptionList:    make(map[string]kyvernov1.ClusterPolicy),
 		ExceptionKinds:   chartOperatorExcemptedKinds,
-		PolicyCache:      make(map[string]kyvernov1.ClusterPolicy),
+		PolicyCache:      policyCache,
 		MaxJitterPercent: maxJitterPercent,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PolicyException")
