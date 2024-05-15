@@ -73,7 +73,6 @@ func main() {
 	var destinationNamespace string
 	var backgroundMode bool
 	var chartOperatorExcemptedKinds []string
-	var policyCache map[string]kyvernov1.ClusterPolicy
 	var maxJitterPercent int
 	// Flags
 	flag.StringVar(&destinationNamespace, "destination-namespace", "", "The namespace where the Kyverno PolicyExceptions will be created. Defaults to GS PolicyException namespace.")
@@ -147,25 +146,25 @@ func main() {
 		Scheme:               mgr.GetScheme(),
 		DestinationNamespace: destinationNamespace,
 		Background:           backgroundMode,
-		PolicyCache:          policyCache,
+		PolicyCache:          make(map[string]kyvernov1.ClusterPolicy),
 		MaxJitterPercent:     maxJitterPercent,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PolicyManifest")
 		os.Exit(1)
 	}
 
-	if len(chartOperatorExcemptedKinds) != 0 {
-		if err = (&controller.ClusterPolicyReconciler{
-			Client:         mgr.GetClient(),
-			Scheme:         mgr.GetScheme(),
-			ExceptionList:  make(map[string]kyvernov1.ClusterPolicy),
-			ExceptionKinds: chartOperatorExcemptedKinds,
-			PolicyCache:    policyCache,
-		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "PolicyException")
-			os.Exit(1)
-		}
+	if err = (&controller.ClusterPolicyReconciler{
+		Client:           mgr.GetClient(),
+		Scheme:           mgr.GetScheme(),
+		ExceptionList:    make(map[string]kyvernov1.ClusterPolicy),
+		ExceptionKinds:   chartOperatorExcemptedKinds,
+		PolicyCache:      make(map[string]kyvernov1.ClusterPolicy),
+		MaxJitterPercent: maxJitterPercent,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "PolicyException")
+		os.Exit(1)
 	}
+
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
