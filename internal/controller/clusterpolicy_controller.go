@@ -77,7 +77,7 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		delete(r.PolicyCache, clusterPolicy.Name)
 	} else {
 		r.PolicyCache[clusterPolicy.Name] = clusterPolicy
-		r.Log.Info(fmt.Sprintf("ClusterPolicy %s added to cache", clusterPolicy.Name))
+		r.Log.Info(fmt.Sprintf("Updated cached ClusterPolicy %s" clusterPolicy.Name))
 	}
 
 	if len(r.ExceptionKinds) != 0 {
