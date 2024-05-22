@@ -34,15 +34,19 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/giantswarm/kyverno-policy-operator/internal/utils"
 )
 
 // ClusterPolicyReconciler reconciles a ClusterPolicy object
 type ClusterPolicyReconciler struct {
 	client.Client
-	Scheme         *runtime.Scheme
-	Log            logr.Logger
-	ExceptionList  map[string]kyvernov1.ClusterPolicy
-	ExceptionKinds []string
+	Scheme           *runtime.Scheme
+	Log              logr.Logger
+	ExceptionList    map[string]kyvernov1.ClusterPolicy
+	ExceptionKinds   []string
+	PolicyCache      map[string]kyvernov1.ClusterPolicy
+	MaxJitterPercent int
 }
 
 //+kubebuilder:rbac:groups=kyverno.io,resources=clusterpolicies,verbs=get;list;watch;create;update;patch;delete
@@ -66,73 +70,81 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 		log.Log.Error(err, "unable to fetch ClusterPolicy")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
+
 	}
 
-	// Check if the Policy has validate rules
-	if !clusterPolicy.HasValidate() {
-		return ctrl.Result{}, nil
+	if !clusterPolicy.DeletionTimestamp.IsZero() {
+		delete(r.PolicyCache, clusterPolicy.Name)
+	} else {
+		r.PolicyCache[clusterPolicy.Name] = clusterPolicy
+		r.Log.Info(fmt.Sprintf("Updated cached ClusterPolicy %s", clusterPolicy.Name))
 	}
 
-	// Inspect the Rules
-	for _, rule := range clusterPolicy.Spec.Rules {
-		// Check if the rule has a validate section
-		if rule.HasValidate() {
-			for _, kind := range rule.MatchResources.GetKinds() {
-				// Check for Namespace validation
-				for _, destinationKind := range r.ExceptionKinds {
-					if kind == destinationKind {
-						// Append exception to PolicyException
-						if _, exists := r.ExceptionList[clusterPolicy.Name]; !exists {
-							r.ExceptionList[clusterPolicy.Name] = clusterPolicy
+	if len(r.ExceptionKinds) != 0 {
+		// Check if the Policy has validate rules
+		if !clusterPolicy.HasValidate() {
+			return ctrl.Result{}, nil
+		}
 
-							// Template Kyverno Polex
-							policyException := kyvernov2beta1.PolicyException{}
+		// Inspect the Rules
+		for _, rule := range clusterPolicy.Spec.Rules {
+			// Check if the rule has a validate section
+			if rule.HasValidate() {
+				for _, kind := range rule.MatchResources.GetKinds() {
+					// Check for Namespace validation
+					for _, destinationKind := range r.ExceptionKinds {
+						if kind == destinationKind {
+							// Append exception to PolicyException
+							if _, exists := r.ExceptionList[clusterPolicy.Name]; !exists {
+								r.ExceptionList[clusterPolicy.Name] = clusterPolicy
 
-							// Set namespace
-							policyException.Namespace = "giantswarm"
+								// Template Kyverno Polex
+								policyException := kyvernov2beta1.PolicyException{}
 
-							// Set name
-							policyException.Name = "chart-operator-generated-sa-bypass"
+								// Set namespace
+								policyException.Namespace = "giantswarm"
 
-							// Set labels
-							policyException.Labels = make(map[string]string)
-							policyException.Labels["app.kubernetes.io/managed-by"] = "kyverno-policy-operator"
+								// Set name
+								policyException.Name = "chart-operator-generated-sa-bypass"
 
-							// Set Background behaviour to false since this Polex is using Subjects
-							background := false
-							policyException.Spec.Background = &background
+								// Set labels
+								policyException.Labels = generateLabels()
 
-							// Set Spec.Match.All
-							policyException.Spec.Match.All = templateResourceFilters(r.ExceptionKinds)
+								// Set Background behaviour to false since this Polex is using Subjects
+								background := false
+								policyException.Spec.Background = &background
 
-							// Set .Spec.Exceptions
-							newExceptions := translatePoliciesToExceptions(r.ExceptionList)
-							policyException.Spec.Exceptions = newExceptions
+								// Set Spec.Match.All
+								policyException.Spec.Match.All = templateResourceFilters(r.ExceptionKinds)
 
-							// Patch PolicyException Kinds
-							gvks, unversioned, err := r.Scheme.ObjectKinds(&policyException)
-							if err != nil {
-								return ctrl.Result{}, err
+								// Set .Spec.Exceptions
+								newExceptions := translatePoliciesToExceptions(r.ExceptionList)
+								policyException.Spec.Exceptions = newExceptions
+
+								// Patch PolicyException Kinds
+								gvks, unversioned, err := r.Scheme.ObjectKinds(&policyException)
+								if err != nil {
+									return ctrl.Result{}, err
+								}
+								if !unversioned && len(gvks) == 1 {
+									policyException.SetGroupVersionKind(gvks[0])
+								}
+
+								if err := r.CreateOrUpdate(ctx, &policyException); err != nil {
+									log.Log.Error(err, "Error creating PolicyException")
+								} else {
+									log.Log.Info(fmt.Sprintf("ClusterPolicy %s triggered a PolicyException update: %s", clusterPolicy.Name, client.ObjectKeyFromObject(&policyException)))
+								}
+
+								return ctrl.Result{}, nil
 							}
-							if !unversioned && len(gvks) == 1 {
-								policyException.SetGroupVersionKind(gvks[0])
-							}
-
-							if err := r.CreateOrUpdate(ctx, &policyException); err != nil {
-								log.Log.Error(err, "Error creating PolicyException")
-							} else {
-								log.Log.Info(fmt.Sprintf("ClusterPolicy %s triggered a PolicyException update: %s", clusterPolicy.Name, client.ObjectKeyFromObject(&policyException)))
-							}
-
-							return ctrl.Result{}, nil
 						}
 					}
 				}
 			}
 		}
 	}
-
-	return ctrl.Result{}, nil
+	return utils.JitterRequeue(DefaultRequeueDuration, r.MaxJitterPercent, r.Log), nil
 }
 
 // CreateOrUpdate attempts first to patch the object given but if an IsNotFound error
@@ -158,7 +170,7 @@ func (r *ClusterPolicyReconciler) CreateOrUpdate(ctx context.Context, obj client
 
 func templateResourceFilters(kinds []string) kyvernov1.ResourceFilters {
 	var resourceFilters kyvernov1.ResourceFilters
-	trasnlatedResourceFilter := kyvernov1.ResourceFilter{
+	translatedResourceFilter := kyvernov1.ResourceFilter{
 		UserInfo: kyvernov1.UserInfo{
 			Subjects: []rbacv1.Subject{{
 				Kind:      "ServiceAccount",
@@ -171,7 +183,7 @@ func templateResourceFilters(kinds []string) kyvernov1.ResourceFilters {
 			Operations: []kyvernov1.AdmissionOperation{"CREATE", "UPDATE"},
 		},
 	}
-	resourceFilters = append(resourceFilters, trasnlatedResourceFilter)
+	resourceFilters = append(resourceFilters, translatedResourceFilter)
 
 	return resourceFilters
 }

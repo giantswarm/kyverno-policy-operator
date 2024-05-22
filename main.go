@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"strings"
 
@@ -26,7 +27,8 @@ import (
 
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 
-	giantswarmPolicy "github.com/giantswarm/kyverno-policy-operator/api/v1alpha1"
+	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
+
 	"github.com/giantswarm/kyverno-policy-operator/internal/controller"
 
 	kyvernov2beta1 "github.com/kyverno/kyverno/api/kyverno/v2beta1"
@@ -59,7 +61,7 @@ func init() {
 		setupLog.Error(err, "unable to register kyverno schema")
 	}
 
-	utilruntime.Must(giantswarmPolicy.AddToScheme(scheme))
+	utilruntime.Must(policyAPI.AddToScheme(scheme))
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
@@ -71,6 +73,9 @@ func main() {
 	var destinationNamespace string
 	var backgroundMode bool
 	var chartOperatorExcemptedKinds []string
+	var maxJitterPercent int
+	policyCache := make(map[string]kyvernov1.ClusterPolicy)
+
 	// Flags
 	flag.StringVar(&destinationNamespace, "destination-namespace", "", "The namespace where the Kyverno PolicyExceptions will be created. Defaults to GS PolicyException namespace.")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
@@ -93,8 +98,14 @@ func main() {
 
 			return nil
 		})
+	flag.IntVar(&maxJitterPercent, "max-jitter-percent", 10, "Spreads out re-queue interval by +/- this amount to spread load.")
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
+
+	if destinationNamespace == "" {
+		fmt.Println("Error: The destination-namespace flag is required")
+		os.Exit(2) // The flag package uses 2 as the exit code when the program is terminated due to a flag parsing error
+	}
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
@@ -126,22 +137,36 @@ func main() {
 		Scheme:               mgr.GetScheme(),
 		DestinationNamespace: destinationNamespace,
 		Background:           backgroundMode,
+		MaxJitterPercent:     maxJitterPercent,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PolicyException")
 		os.Exit(1)
 	}
 
-	if len(chartOperatorExcemptedKinds) != 0 {
-		if err = (&controller.ClusterPolicyReconciler{
-			Client:         mgr.GetClient(),
-			Scheme:         mgr.GetScheme(),
-			ExceptionList:  make(map[string]kyvernov1.ClusterPolicy),
-			ExceptionKinds: chartOperatorExcemptedKinds,
-		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "PolicyException")
-			os.Exit(1)
-		}
+	if err = (&controller.PolicyManifestReconciler{
+		Client:               mgr.GetClient(),
+		Scheme:               mgr.GetScheme(),
+		DestinationNamespace: destinationNamespace,
+		Background:           backgroundMode,
+		PolicyCache:          policyCache,
+		MaxJitterPercent:     maxJitterPercent,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "PolicyManifest")
+		os.Exit(1)
 	}
+
+	if err = (&controller.ClusterPolicyReconciler{
+		Client:           mgr.GetClient(),
+		Scheme:           mgr.GetScheme(),
+		ExceptionList:    make(map[string]kyvernov1.ClusterPolicy),
+		ExceptionKinds:   chartOperatorExcemptedKinds,
+		PolicyCache:      policyCache,
+		MaxJitterPercent: maxJitterPercent,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "PolicyException")
+		os.Exit(1)
+	}
+
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

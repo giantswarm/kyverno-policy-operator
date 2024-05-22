@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -29,13 +30,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	giantswarmPolicy "github.com/giantswarm/kyverno-policy-operator/api/v1alpha1"
-
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/giantswarm/kyverno-policy-operator/internal/utils"
 )
 
 // PolicyExceptionReconciler reconciles a PolicyException object
@@ -45,6 +46,7 @@ type PolicyExceptionReconciler struct {
 	Log                  logr.Logger
 	DestinationNamespace string
 	Background           bool
+	MaxJitterPercent     int
 }
 
 //+kubebuilder:rbac:groups=policy.giantswarm.io,resources=policyexceptions,verbs=get;list;watch;create;update;patch;delete
@@ -55,7 +57,7 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	_ = log.FromContext(ctx)
 	_ = r.Log.WithValues("policyexception", req.NamespacedName)
 
-	var gsPolicyException giantswarmPolicy.PolicyException
+	var gsPolicyException policyAPI.PolicyException
 
 	if err := r.Get(ctx, req.NamespacedName, &gsPolicyException); err != nil {
 		// Error fetching the report
@@ -100,8 +102,7 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	policyException.Name = gsPolicyException.Name
 
 	// Set labels
-	policyException.Labels = make(map[string]string)
-	policyException.Labels["app.kubernetes.io/managed-by"] = "kyverno-policy-operator"
+	policyException.Labels = generateLabels()
 	// Set ownerReferences
 	if err := controllerutil.SetControllerReference(&gsPolicyException, &policyException, r.Scheme); err != nil {
 		return ctrl.Result{}, err
@@ -114,7 +115,7 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		policyException.Spec.Background = &r.Background
 
 		// Set .Spec.Match.Any targets
-		policyException.Spec.Match.Any = translateTargetsToResourceFilters(gsPolicyException)
+		policyException.Spec.Match.Any = translateTargetsToResourceFilters(gsPolicyException.Spec.Targets)
 
 		// Set .Spec.Exceptions
 		newExceptions := translatePoliciesToExceptions(policyMap)
@@ -130,7 +131,7 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		log.Log.Info(fmt.Sprintf("PolicyException %s: %s", policyException.Name, op))
 	}
 
-	return ctrl.Result{}, nil
+	return utils.JitterRequeue(DefaultRequeueDuration, r.MaxJitterPercent, r.Log), nil
 }
 
 // CreateOrUpdate attempts first to patch the object given but if an IsNotFound error
@@ -177,7 +178,7 @@ func generateExceptionKinds(resourceKind string) []string {
 // SetupWithManager sets up the controller with the Manager.
 func (r *PolicyExceptionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&giantswarmPolicy.PolicyException{}).
+		For(&policyAPI.PolicyException{}).
 		Owns(&kyvernov2beta1.PolicyException{}).
 		Complete(r)
 }
