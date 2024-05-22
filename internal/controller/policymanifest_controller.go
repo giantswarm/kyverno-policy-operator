@@ -80,8 +80,6 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	copy(allTargets, polman.Spec.Exceptions)
 	copy(allTargets[len(polman.Spec.Exceptions):], polman.Spec.AutomatedExceptions)
 
-	policyMap := make(map[string]kyvernov1.ClusterPolicy)
-
 	var kyvernoPolicy kyvernov1.ClusterPolicy
 	var ok bool
 
@@ -90,9 +88,9 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	policyMap[polman.Name] = kyvernoPolicy
+	policies := []kyvernov1.ClusterPolicy{kyvernoPolicy}
 
-	newExceptions := translatePoliciesToExceptions(policyMap)
+	newExceptions := translatePoliciesToExceptions(policies)
 
 	// create or update a Kyverno PolicyException.
 

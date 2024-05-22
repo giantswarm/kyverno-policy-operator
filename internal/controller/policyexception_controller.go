@@ -83,7 +83,7 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// Create Kyverno exception
 	// Create a policy map for storing cluster policies to extract rules later
 	// TODO: Take this block out and move it to utils
-	policyMap := make(map[string]kyvernov1.ClusterPolicy)
+	var policies []kyvernov1.ClusterPolicy
 	for _, policy := range gsPolicyException.Spec.Policies {
 		var kyvernoPolicy kyvernov1.ClusterPolicy
 		if err := r.Get(ctx, types.NamespacedName{Namespace: "", Name: policy}, &kyvernoPolicy); err != nil {
@@ -92,7 +92,7 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			return ctrl.Result{}, client.IgnoreNotFound(err)
 		}
 
-		policyMap[policy] = kyvernoPolicy
+		policies = append(policies, kyvernoPolicy)
 	}
 	// Translate GiantSwarm PolicyException to Kyverno's PolicyException schema
 	policyException := kyvernov2beta1.PolicyException{}
@@ -118,7 +118,7 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		policyException.Spec.Match.Any = translateTargetsToResourceFilters(gsPolicyException.Spec.Targets)
 
 		// Set .Spec.Exceptions
-		newExceptions := translatePoliciesToExceptions(policyMap)
+		newExceptions := translatePoliciesToExceptions(policies)
 		if !unorderedEqual(policyException.Spec.Exceptions, newExceptions) {
 			policyException.Spec.Exceptions = newExceptions
 		}
