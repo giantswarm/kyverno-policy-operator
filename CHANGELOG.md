@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added the `policymanifest_controller`. 
+
+### Changed
+
+- Changed the functions in `utils.go`
+- Changed the `policyexception_controller` and `clusterpolicy_controller` to use `policy_api`.
+
 ## [0.0.7] - 2024-01-16
 
 ### Changed

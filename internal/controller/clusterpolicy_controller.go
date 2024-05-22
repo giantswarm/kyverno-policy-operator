@@ -117,8 +117,10 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 								// Set Spec.Match.All
 								policyException.Spec.Match.All = templateResourceFilters(r.ExceptionKinds)
 
+								policies := []kyvernov1.ClusterPolicy{clusterPolicy}
+
 								// Set .Spec.Exceptions
-								newExceptions := translatePoliciesToExceptions(r.ExceptionList)
+								newExceptions := translatePoliciesToExceptions(policies)
 								policyException.Spec.Exceptions = newExceptions
 
 								// Patch PolicyException Kinds

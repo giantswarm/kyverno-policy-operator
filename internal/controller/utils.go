@@ -54,11 +54,11 @@ func addNameWildcard(names []string) []string {
 }
 
 // translatePoliciesToExceptions takes a Kyverno ClusterPolicy array and transforms it into a Kyverno Exception array
-func translatePoliciesToExceptions(policies map[string]kyvernov1.ClusterPolicy) []kyvernov2alpha1.Exception {
+func translatePoliciesToExceptions(policies []kyvernov1.ClusterPolicy) []kyvernov2alpha1.Exception {
 	var exceptionArray []kyvernov2alpha1.Exception
-	for policyName, kyvernoPolicy := range policies {
+	for _, kyvernoPolicy := range policies {
 		kyvernoException := kyvernov2alpha1.Exception{
-			PolicyName: policyName,
+			PolicyName: kyvernoPolicy.Name,
 			RuleNames:  generatePolicyRules(kyvernoPolicy),
 		}
 		exceptionArray = append(exceptionArray, kyvernoException)
