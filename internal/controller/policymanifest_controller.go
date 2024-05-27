@@ -53,16 +53,17 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	_ = log.FromContext(ctx)
 
 	var polman policyAPI.PolicyManifest
+	{
+		if err := r.Get(ctx, req.NamespacedName, &polman); err != nil {
+			// Error fetching the policy manifest
 
-	if err := r.Get(ctx, req.NamespacedName, &polman); err != nil {
-		// Error fetching the policy manifest
+			if apierrors.IsNotFound(err) {
+				return ctrl.Result{}, nil
+			}
 
-		if apierrors.IsNotFound(err) {
-			return ctrl.Result{}, nil
+			log.Log.Error(err, "unable to fetch policy manifest")
+			return ctrl.Result{}, client.IgnoreNotFound(err)
 		}
-
-		log.Log.Error(err, "unable to fetch policy manifest")
-		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	kyvernoPolicyException := kyvernov2beta1.PolicyException{}
