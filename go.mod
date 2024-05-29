@@ -9,6 +9,7 @@ require (
 	github.com/kyverno/kyverno v1.11.4
 	github.com/onsi/ginkgo/v2 v2.18.0
 	github.com/onsi/gomega v1.33.1
+	github.com/prometheus/client_golang v1.19.0
 	k8s.io/api v0.29.2
 	k8s.io/apimachinery v0.29.2
 	k8s.io/client-go v0.29.2
@@ -166,7 +167,6 @@ require (
 	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/prometheus/client_golang v1.19.0 // indirect
 	github.com/prometheus/client_model v0.6.0 // indirect
 	github.com/prometheus/common v0.51.1 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
