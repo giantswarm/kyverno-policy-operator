@@ -69,7 +69,7 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 
 		log.Log.Error(err, "unable to fetch PolicyException")
-		FailedPolicyExceptionControllerReconciliations.Inc()
+		incrementFailedReconciliations("PolicyException")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -127,7 +127,7 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return nil
 	}); err != nil {
 		log.Log.Error(err, fmt.Sprintf("Reconciliation failed for PolicyException %s", policyException.Name))
-		FailedPolicyExceptionControllerReconciliations.Inc()
+		incrementFailedReconciliations("PolicyException")
 		return ctrl.Result{}, err
 	} else {
 		log.Log.Info(fmt.Sprintf("PolicyException %s: %s", policyException.Name, op))

@@ -69,7 +69,7 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 
 		log.Log.Error(err, "unable to fetch ClusterPolicy")
-		FailedClusterPolicyControllerReconciliations.Inc()
+		incrementFailedReconciliations("ClusterPolicy")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 
 	}
