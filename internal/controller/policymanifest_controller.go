@@ -62,11 +62,9 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			}
 
 			log.Log.Error(err, "unable to fetch policy manifest")
+			FailedPolicyManifestControllerReconciliations.Inc()
 			return ctrl.Result{}, client.IgnoreNotFound(err)
 		}
-		log.Log.Error(err, "unable to fetch policy manifest")
-		FailedPolicyManifestControllerReconciliations.Inc()
-		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	kyvernoPolicyException := kyvernov2beta1.PolicyException{}
