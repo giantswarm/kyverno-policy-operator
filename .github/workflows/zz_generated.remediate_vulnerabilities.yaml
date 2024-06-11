@@ -90,8 +90,7 @@ jobs:
             git checkout $branch
           fi
       - name: Run nancy-fixer fix
-        uses: docker://gsoci.azurecr.io/giantswarm/nancy-fixer@sha256:e6994c2b91d0da22907e20363f10373e015519ef9d205fe9a8ef746f49d30997 # v0.4.4
-        timeout-minutes: 15
+        uses: giantswarm/nancy-fixer@ab1048c622259dafade05bbde1d20d831a9592aa
       - name: Set up git identity
         run: |
           git config --local user.email "149080493+heraldbot[bot]@users.noreply.github.com"
