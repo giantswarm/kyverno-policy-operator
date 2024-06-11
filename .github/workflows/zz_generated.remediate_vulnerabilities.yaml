@@ -90,7 +90,7 @@ jobs:
             git checkout $branch
           fi
       - name: Run nancy-fixer fix
-        uses: giantswarm/nancy-fixer@ac97298146a93b29c3cd67102c8b12db1d355a21
+        uses: giantswarm/nancy-fixer@ab1048c622259dafade05bbde1d20d831a9592aa
         timeout-minutes: 15
       - name: Set up git identity
         run: |
