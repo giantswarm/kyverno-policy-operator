@@ -90,7 +90,7 @@ jobs:
             git checkout $branch
           fi
       - name: Run nancy-fixer fix
-        uses: docker://gsoci.azurecr.io/giantswarm/nancy-fixer@sha256:13a59a8327cb919683602f810dd935d5c02de4a229309826ecde71b42deca164 # v0.4.4
+        uses: docker://gsoci.azurecr.io/giantswarm/nancy-fixer@sha256:e6994c2b91d0da22907e20363f10373e015519ef9d205fe9a8ef746f49d30997 # v0.4.4
         timeout-minutes: 15
       - name: Set up git identity
         run: |
