@@ -263,6 +263,9 @@ replace github.com/valyala/fasthttp v1.16.0 => github.com/valyala/fasthttp v1.51
 
 replace go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.45.0 => go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.46.1
 
-replace github.com/lestrrat-go/jwx/v2 v2.0.18 => github.com/lestrrat-go/jwx/v2 v2.0.19
+replace (
+	github.com/lestrrat-go/jwx/v2 v2.0.18 => github.com/lestrrat-go/jwx/v2 v2.0.19
+	github.com/lestrrat-go/jwx/v2 v2.0.19 => github.com/lestrrat-go/jwx/v2 v2.0.21
+)
 
 replace github.com/sigstore/cosign/v2 v2.2.2 => github.com/sigstore/cosign/v2 v2.2.4
