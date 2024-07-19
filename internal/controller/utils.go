@@ -13,10 +13,10 @@ var DefaultRequeueDuration = (time.Minute * 5)
 const (
 	ComponentName = "kyverno-policy-operator"
 	ManagedBy     = "app.kubernetes.io/managed-by"
+	MaxNameLength = 58
 )
 
 // generateLabels generates the labels for the Kyverno Policy Exception.
-
 func generateLabels() map[string]string {
 	labels := map[string]string{
 		ManagedBy: ComponentName,
@@ -31,7 +31,7 @@ func translateTargetsToResourceFilters(targets []policyAPI.Target) kyvernov1.Res
 		translatedResourceFilter := kyvernov1.ResourceFilter{
 			ResourceDescription: kyvernov1.ResourceDescription{
 				Namespaces: target.Namespaces,
-				Names:      addNameWildcard(target.Names),
+				Names:      formatNames(target.Names),
 				Kinds:      generateExceptionKinds(target.Kind),
 			},
 		}
@@ -40,17 +40,35 @@ func translateTargetsToResourceFilters(targets []policyAPI.Target) kyvernov1.Res
 	return resourceFilters
 }
 
-// addNameWildcard appends a wildcard to a target name if it does not already have one.
-
-func addNameWildcard(names []string) []string {
+// formatName validates the names size and adds a wildcard if necessary
+func formatNames(names []string) []string {
 	newNames := []string{}
 	for _, name := range names {
-		if name[len(name)-1:] != "*" {
-			name = name + "*"
+		// Check if name will be truncated by Kubernetes
+		if len(name) > MaxNameLength {
+			// Truncate in advanced to avoid issues
+			name = truncateName(name)
 		}
+		// Append wildcard if needed
+		name = addNameWildcard(name)
+		// Append name to the newNames array
 		newNames = append(newNames, name)
 	}
 	return newNames
+}
+
+// truncateName truncates a string name to 58 characters to match Kubernetes limits on generated resources
+func truncateName(name string) string {
+	return name[:MaxNameLength]
+}
+
+// addNameWildcard appends a wildcard to a target name if it does not already have one.
+func addNameWildcard(name string) string {
+	if name[len(name)-1:] != "*" {
+		name = name + "*"
+	}
+
+	return name
 }
 
 // translatePoliciesToExceptions takes a Kyverno ClusterPolicy array and transforms it into a Kyverno Exception array
