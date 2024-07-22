@@ -268,3 +268,5 @@ replace go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelg
 replace github.com/lestrrat-go/jwx/v2 v2.0.18 => github.com/lestrrat-go/jwx/v2 v2.0.19
 
 replace github.com/sigstore/cosign/v2 v2.2.2 => github.com/sigstore/cosign/v2 v2.2.4
+
+replace github.com/hashicorp/go-retryablehttp v0.7.5 => github.com/hashicorp/go-retryablehttp v0.7.7
