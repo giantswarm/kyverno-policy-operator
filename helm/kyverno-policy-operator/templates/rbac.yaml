@@ -35,6 +35,14 @@ rules:
       - watch
       - update
       - patch
+  - apiGroups:
+      - policy.giantswarm.io
+    resources:
+      - policymanifests
+    verbs:
+      - get
+      - list
+      - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
