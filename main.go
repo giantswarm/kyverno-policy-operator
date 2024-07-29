@@ -89,7 +89,7 @@ func main() {
 	flag.BoolVar(&backgroundMode, "background-mode", false,
 		"Enable PolicyException background mode. If true, failing resources have a status of 'skip' in reports, instead of 'fail'. Defaults to false.",
 	)
-	flag.Func("chart-operator-excempted-kinds",
+	flag.Func("chart-operator-exception-kinds",
 		"A comma-separated list of kinds to be excluded from custom ClusterPolicies. This lets the chart-operator ServiceAccount to create protected objects.",
 		func(input string) error {
 			items := strings.Split(input, ",")

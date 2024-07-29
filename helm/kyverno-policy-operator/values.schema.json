@@ -161,7 +161,7 @@
         "policyOperator": {
             "type": "object",
             "properties": {
-                "chartOperatorExcemptedKinds": {
+                "chartOperatorExceptionKinds": {
                     "type": "array",
                     "items": {
                         "type": "string"
