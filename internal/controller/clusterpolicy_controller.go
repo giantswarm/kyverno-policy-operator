@@ -41,12 +41,12 @@ import (
 // ClusterPolicyReconciler reconciles a ClusterPolicy object
 type ClusterPolicyReconciler struct {
 	client.Client
-	Scheme           *runtime.Scheme
-	Log              logr.Logger
-	ExceptionList    map[string]kyvernov1.ClusterPolicy
-	ExceptionKinds   []string
-	PolicyCache      map[string]kyvernov1.ClusterPolicy
-	MaxJitterPercent int
+	Scheme                      *runtime.Scheme
+	Log                         logr.Logger
+	ExceptionList               map[string]kyvernov1.ClusterPolicy
+	ChartOperatorExceptionKinds []string
+	PolicyCache                 map[string]kyvernov1.ClusterPolicy
+	MaxJitterPercent            int
 }
 
 //+kubebuilder:rbac:groups=kyverno.io,resources=clusterpolicies,verbs=get;list;watch;create;update;patch;delete
