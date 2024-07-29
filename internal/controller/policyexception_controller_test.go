@@ -21,14 +21,11 @@ import (
 
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
 	kyvernov2beta1 "github.com/kyverno/kyverno/api/kyverno/v2beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", func() {
@@ -40,9 +37,6 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 
 	BeforeEach(func() {
 		ctx = context.Background()
-
-		scheme := runtime.NewScheme()
-		Expect(policyAPI.AddToScheme(scheme)).To(Succeed())
 
 		gsPolicyException = policyAPI.PolicyException{
 			ObjectMeta: metav1.ObjectMeta{
@@ -62,21 +56,14 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 			},
 		}
 
-		client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&gsPolicyException).Build()
-
-		r = &PolicyExceptionReconciler{
-			Client: client,
-			Scheme: scheme,
-		}
-
 	})
 
 	Context("When succesfully reconciling a GSPolicyException", func() {
 		It("should successfully create a Kyverno Policy Exception", func() {
 			req := ctrl.Request{
 				NamespacedName: types.NamespacedName{
-					Name:      "test-policyexception",
-					Namespace: "default",
+					Name:      gsPolicyException.Name,
+					Namespace: gsPolicyException.Namespace,
 				},
 			}
 			// First we test for a successful reconciliation
