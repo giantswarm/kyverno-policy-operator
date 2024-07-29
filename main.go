@@ -72,7 +72,7 @@ func main() {
 	var probeAddr string
 	var destinationNamespace string
 	var backgroundMode bool
-	var chartOperatorExcemptedKinds []string
+	var chartOperatorExceptionKinds []string
 	var maxJitterPercent int
 	policyCache := make(map[string]kyvernov1.ClusterPolicy)
 
@@ -89,12 +89,12 @@ func main() {
 	flag.BoolVar(&backgroundMode, "background-mode", false,
 		"Enable PolicyException background mode. If true, failing resources have a status of 'skip' in reports, instead of 'fail'. Defaults to false.",
 	)
-	flag.Func("chart-operator-excempted-kinds",
+	flag.Func("chart-operator-exception-kinds",
 		"A comma-separated list of kinds to be excluded from custom ClusterPolicies. This lets the chart-operator ServiceAccount to create protected objects.",
 		func(input string) error {
 			items := strings.Split(input, ",")
 
-			chartOperatorExcemptedKinds = append(chartOperatorExcemptedKinds, items...)
+			chartOperatorExceptionKinds = append(chartOperatorExceptionKinds, items...)
 
 			return nil
 		})
@@ -156,12 +156,12 @@ func main() {
 	}
 
 	if err = (&controller.ClusterPolicyReconciler{
-		Client:           mgr.GetClient(),
-		Scheme:           mgr.GetScheme(),
-		ExceptionList:    make(map[string]kyvernov1.ClusterPolicy),
-		ExceptionKinds:   chartOperatorExcemptedKinds,
-		PolicyCache:      policyCache,
-		MaxJitterPercent: maxJitterPercent,
+		Client:                      mgr.GetClient(),
+		Scheme:                      mgr.GetScheme(),
+		ExceptionList:               make(map[string]kyvernov1.ClusterPolicy),
+		ChartOperatorExceptionKinds: chartOperatorExceptionKinds,
+		PolicyCache:                 policyCache,
+		MaxJitterPercent:            maxJitterPercent,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PolicyException")
 		os.Exit(1)
