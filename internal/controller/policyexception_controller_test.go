@@ -36,7 +36,6 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 	)
 
 	BeforeEach(func() {
-		ctx = context.Background()
 
 		gsPolicyException = policyAPI.PolicyException{
 			ObjectMeta: metav1.ObjectMeta{
