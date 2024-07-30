@@ -59,6 +59,8 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 			},
 		}
 
+		Expect(k8sClient.Create(ctx, &gsPolicyException)).Should(Succeed())
+
 	})
 
 	Context("When succesfully reconciling a GSPolicyException", func() {
