@@ -26,6 +26,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", func() {
@@ -36,6 +38,8 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 	)
 
 	BeforeEach(func() {
+		logger := zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true))
+		ctx = log.IntoContext(context.Background(), logger)
 
 		gsPolicyException = policyAPI.PolicyException{
 			ObjectMeta: metav1.ObjectMeta{

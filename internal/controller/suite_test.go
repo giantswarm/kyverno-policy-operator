@@ -60,7 +60,8 @@ func TestControllers(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+	logger = zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true))
+	logf.SetLogger(logger)
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
@@ -111,6 +112,7 @@ var _ = BeforeSuite(func() {
 		DestinationNamespace: destinationNamespace,
 		Background:           false,
 		MaxJitterPercent:     maxJitterPercent,
+		Log:                  logger,
 	}).SetupWithManager(k8sManager)
 	Expect(err).NotTo(HaveOccurred())
 
