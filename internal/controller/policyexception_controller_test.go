@@ -157,8 +157,12 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 			// Now we compare the Kyverno Policy Exception with the expected results.
 			Expect(kyvernoPolicyException.Name).To(Equal("test-policyexception"))
 			Expect(kyvernoPolicyException.Namespace).To(Equal("default"))
+			Expect(kyvernoPolicyException.Labels).To(HaveKeyWithValue("app.kubernetes.io/managed-by", "kyverno-policy-operator"))
 			Expect(kyvernoPolicyException.Spec.Match.GetKinds()).To(ConsistOf("Deployment", "ReplicaSet", "Pod"))
-
+			Expect(kyvernoPolicyException.Spec.Exceptions[0].PolicyName).To(Equal("disallow-privileged-containers"))
+			Expect(kyvernoPolicyException.Spec.Exceptions[0].RuleNames[0]).To(Equal("restrict-privileged-containers"))
+			Expect(kyvernoPolicyException.Spec.Match.Any[0].ResourceDescription.Names[0]).To(Equal("test-app-1*"))
+			Expect(kyvernoPolicyException.Spec.Match.Any[0].ResourceDescription.Namespaces[0]).To(Equal("default"))
 		})
 	})
 })
