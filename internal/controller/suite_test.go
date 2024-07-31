@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+	"time"
 
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
 	"github.com/go-logr/logr"
@@ -139,7 +140,10 @@ var _ = AfterSuite(func() {
 	if testEnv == nil {
 		return
 	}
-
 	err := testEnv.Stop()
+	if err != nil {
+		time.Sleep(5 * time.Second)
+	}
+	err = testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
 })

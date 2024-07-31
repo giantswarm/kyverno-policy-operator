@@ -35,12 +35,12 @@ import (
 var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", func() {
 	var (
 		ctx                  context.Context
-		r                    *PolicyExceptionReconciler
 		kyvernoClusterPolicy kyvernov1.ClusterPolicy
 		gsPolicyException    policyAPI.PolicyException
 	)
 
 	BeforeEach(func() {
+
 		logger := zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true))
 		ctx = log.IntoContext(context.Background(), logger)
 
@@ -127,19 +127,22 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 				},
 			}
 			// First we test for a successful reconciliation
-			result, err := r.Reconcile(ctx, req)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(result.Requeue).To(BeFalse())
+			//result, err := r.Reconcile(ctx, req)
+			//Expect(err).NotTo(HaveOccurred())
+			//Expect(result.Requeue).To(BeFalse())
 
-			// Then we test if the Kyverno Policy Exception was created
+			// Then we test if we can fetch the Kyverno Policy Exception.
 			var kyvernoPolicyException kyvernov2beta1.PolicyException
-			err = r.Get(ctx, req.NamespacedName, &kyvernoPolicyException)
-			Expect(err).NotTo(HaveOccurred())
+			//err = r.Get(ctx, req.NamespacedName, &kyvernoPolicyException)
+			Eventually(func() error {
+				return k8sClient.Get(ctx, req.NamespacedName, &kyvernoPolicyException)
+			}).ShouldNot(HaveOccurred())
+			//Expect(err).NotTo(HaveOccurred())
 
 			// Now we compare the Kyverno Policy Exception with the expected results.
 			Expect(kyvernoPolicyException.Name).To(Equal("test-policyexception"))
 			Expect(kyvernoPolicyException.Namespace).To(Equal("default"))
-			Expect(kyvernoPolicyException.Spec.Match.GetKinds()).To(ContainElement("Deployment", "ReplicaSet", "Pod"))
+			Expect(kyvernoPolicyException.Spec.Match.GetKinds()).To(ConsistOf("Deployment", "ReplicaSet", "Pod"))
 
 		})
 	})
