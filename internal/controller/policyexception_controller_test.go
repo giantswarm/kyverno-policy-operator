@@ -27,6 +27,7 @@ import (
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -37,12 +38,26 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 		ctx                  context.Context
 		kyvernoClusterPolicy kyvernov1.ClusterPolicy
 		gsPolicyException    policyAPI.PolicyException
+		r                    *PolicyExceptionReconciler
 	)
 
 	BeforeEach(func() {
 
+		// We initialize the Policy Exception Reconciler first.
+
+		r = &PolicyExceptionReconciler{
+			Client:               k8sClient,
+			Scheme:               scheme.Scheme,
+			Log:                  logger,
+			DestinationNamespace: destinationNamespace,
+			Background:           false,
+			MaxJitterPercent:     maxJitterPercent,
+		}
+
 		logger := zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true))
 		ctx = log.IntoContext(context.Background(), logger)
+
+		// We then define the Kyverno Cluster Policy and the Giant Swarm Policy Exception.
 
 		kyvernoClusterPolicy = kyvernov1.ClusterPolicy{
 			TypeMeta: metav1.TypeMeta{
@@ -113,6 +128,8 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 				Policies: []string{"disallow-privileged-containers"},
 			},
 		}
+
+		// We put the Kyverno Cluster Policy and the Giant Swarm Policy Exception in the cluster.
 		Expect(k8sClient.Create(ctx, &kyvernoClusterPolicy)).Should(Succeed())
 		Expect(k8sClient.Create(ctx, &gsPolicyException)).Should(Succeed())
 
@@ -127,17 +144,15 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 				},
 			}
 			// First we test for a successful reconciliation
-			//result, err := r.Reconcile(ctx, req)
-			//Expect(err).NotTo(HaveOccurred())
-			//Expect(result.Requeue).To(BeFalse())
+			result, err := r.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeTrue())
 
 			// Then we test if we can fetch the Kyverno Policy Exception.
 			var kyvernoPolicyException kyvernov2beta1.PolicyException
-			//err = r.Get(ctx, req.NamespacedName, &kyvernoPolicyException)
-			Eventually(func() error {
-				return k8sClient.Get(ctx, req.NamespacedName, &kyvernoPolicyException)
-			}).ShouldNot(HaveOccurred())
-			//Expect(err).NotTo(HaveOccurred())
+			err = r.Get(ctx, req.NamespacedName, &kyvernoPolicyException)
+
+			Expect(err).NotTo(HaveOccurred())
 
 			// Now we compare the Kyverno Policy Exception with the expected results.
 			Expect(kyvernoPolicyException.Name).To(Equal("test-policyexception"))

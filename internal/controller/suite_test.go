@@ -107,16 +107,6 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
-	err = (&PolicyExceptionReconciler{
-		Client:               k8sManager.GetClient(),
-		Scheme:               k8sManager.GetScheme(),
-		DestinationNamespace: destinationNamespace,
-		Background:           false,
-		MaxJitterPercent:     maxJitterPercent,
-		Log:                  logger,
-	}).SetupWithManager(k8sManager)
-	Expect(err).NotTo(HaveOccurred())
-
 	err = (&PolicyManifestReconciler{
 		Client:               k8sManager.GetClient(),
 		Scheme:               k8sManager.GetScheme(),
