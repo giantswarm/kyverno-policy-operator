@@ -20,9 +20,11 @@ import (
 	"context"
 
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
+	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 	kyvernov2beta1 "github.com/kyverno/kyverno/api/kyverno/v2beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -32,14 +34,67 @@ import (
 
 var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", func() {
 	var (
-		ctx               context.Context
-		r                 *PolicyExceptionReconciler
-		gsPolicyException policyAPI.PolicyException
+		ctx                  context.Context
+		r                    *PolicyExceptionReconciler
+		kyvernoClusterPolicy kyvernov1.ClusterPolicy
+		gsPolicyException    policyAPI.PolicyException
 	)
 
 	BeforeEach(func() {
 		logger := zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true))
 		ctx = log.IntoContext(context.Background(), logger)
+
+		kyvernoClusterPolicy = kyvernov1.ClusterPolicy{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "kyverno.io/v1",
+				Kind:       "ClusterPolicy",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "disallow-privileged-containers",
+			},
+			Spec: kyvernov1.Spec{
+				Rules: []kyvernov1.Rule{
+					{
+						Name: "restrict-privileged-containers",
+						MatchResources: kyvernov1.MatchResources{
+							Any: []kyvernov1.ResourceFilter{
+								{ResourceDescription: kyvernov1.ResourceDescription{Kinds: []string{"Deployment"}}},
+							},
+						},
+						Validation: kyvernov1.Validation{
+							Message: "Privileged mode is disallowed. The fields spec.containers[*].securityContext.privileged and spec.initContainers[*].securityContext.privileged must be unset or set to `false`.",
+							RawPattern: &apiextv1.JSON{
+								Raw: []byte(`{
+          							"spec": {
+            							"ephemeralContainers": [
+              								{
+                								"securityContext": {
+												  "privileged": "false"
+                								}
+              								}	
+										],
+            							"initContainers": [
+              								{
+                								"securityContext": {
+                  								  "privileged": "false"
+                								}
+              								}					
+            							],
+            							"containers": [
+              								{
+												"securityContext": {
+                  								  "privileged": "false"
+                							}
+              							}
+            						]
+								}
+        					}`),
+							},
+						},
+					},
+				},
+			},
+		}
 
 		gsPolicyException = policyAPI.PolicyException{
 			ObjectMeta: metav1.ObjectMeta{
@@ -55,10 +110,10 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 						Kind:       "Deployment",
 					},
 				},
-				Policies: []string{"restrict-privileged-containers", "restrict-host-network"},
+				Policies: []string{"disallow-privileged-containers"},
 			},
 		}
-
+		Expect(k8sClient.Create(ctx, &kyvernoClusterPolicy)).Should(Succeed())
 		Expect(k8sClient.Create(ctx, &gsPolicyException)).Should(Succeed())
 
 	})
