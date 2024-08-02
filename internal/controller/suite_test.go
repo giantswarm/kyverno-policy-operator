@@ -50,8 +50,6 @@ var testEnv *envtest.Environment
 var logger logr.Logger
 var ctx context.Context
 var cancel context.CancelFunc
-var policyCache = make(map[string]kyvernov1.ClusterPolicy)
-var destinationNamespace = "default"
 var maxJitterPercent = 10
 
 func TestControllers(t *testing.T) {
