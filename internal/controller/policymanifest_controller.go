@@ -84,7 +84,12 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	var kyvernoPolicy kyvernov1.ClusterPolicy
 	var ok bool
 
+	for key := range r.PolicyCache {
+		log.Log.Info("policyManifestController policyCache key:", "key", key)
+	}
+
 	if kyvernoPolicy, ok = r.PolicyCache[polman.Name]; !ok {
+		log.Log.Info(fmt.Sprintf("request namespace is: %s", req.Namespace))
 		log.Log.Error(fmt.Errorf("Policy %s not found in cache", polman.Name), "unable to fetch Kyverno Policy from cache")
 		return ctrl.Result{Requeue: true}, nil
 	}

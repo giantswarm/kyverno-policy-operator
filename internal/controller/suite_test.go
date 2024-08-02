@@ -107,16 +107,6 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
-	err = (&PolicyManifestReconciler{
-		Client:               k8sManager.GetClient(),
-		Scheme:               k8sManager.GetScheme(),
-		DestinationNamespace: destinationNamespace,
-		Background:           false,
-		PolicyCache:          policyCache,
-		MaxJitterPercent:     maxJitterPercent,
-	}).SetupWithManager(k8sManager)
-	Expect(err).NotTo(HaveOccurred())
-
 	go func() {
 		defer GinkgoRecover()
 		err = k8sManager.Start(ctx)

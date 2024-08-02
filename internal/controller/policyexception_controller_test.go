@@ -35,10 +35,11 @@ import (
 
 var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", func() {
 	var (
-		ctx                  context.Context
-		kyvernoClusterPolicy kyvernov1.ClusterPolicy
-		gsPolicyException    policyAPI.PolicyException
-		r                    *PolicyExceptionReconciler
+		ctx                    context.Context
+		kyvernoClusterPolicy   kyvernov1.ClusterPolicy
+		gsPolicyException      policyAPI.PolicyException
+		r                      *PolicyExceptionReconciler
+		kyvernoPolicyException kyvernov2beta1.PolicyException
 	)
 
 	BeforeEach(func() {
@@ -49,7 +50,7 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 			Client:               k8sClient,
 			Scheme:               scheme.Scheme,
 			Log:                  logger,
-			DestinationNamespace: destinationNamespace,
+			DestinationNamespace: "default",
 			Background:           false,
 			MaxJitterPercent:     maxJitterPercent,
 		}
@@ -135,6 +136,12 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 
 	})
 
+	AfterEach(func() {
+		// We clean up the Kyverno Cluster Policy and the Giant Swarm Policy Exception.
+		Expect(k8sClient.Delete(ctx, &kyvernoClusterPolicy)).Should(Succeed())
+		Expect(k8sClient.Delete(ctx, &gsPolicyException)).Should(Succeed())
+	})
+
 	Context("When succesfully reconciling a GSPolicyException", func() {
 		It("should successfully create a Kyverno Policy Exception", func() {
 			req := ctrl.Request{
@@ -149,7 +156,6 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 			Expect(result.Requeue).To(BeTrue())
 
 			// Then we test if we can fetch the Kyverno Policy Exception.
-			var kyvernoPolicyException kyvernov2beta1.PolicyException
 			err = r.Get(ctx, req.NamespacedName, &kyvernoPolicyException)
 
 			Expect(err).NotTo(HaveOccurred())
