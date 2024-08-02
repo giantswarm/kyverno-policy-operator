@@ -165,6 +165,12 @@ var _ = Describe("PolicyManifest Controller", func() {
 
 	})
 
+	AfterEach(func() {
+		// Clean up the Kyverno Cluster Policy and the Giant Swarm Policy Manifest
+		Expect(k8sClient.Delete(ctx, &kyvernoClusterPolicy)).Should(Succeed())
+		Expect(k8sClient.Delete(ctx, &gsPolicyManifest)).Should(Succeed())
+	})
+
 	Context("When successfully reconciling a PolicyManifest", func() {
 		It("should successfully create a Kyverno Policy Exception", func() {
 			req := ctrl.Request{
