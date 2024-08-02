@@ -78,9 +78,6 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	} else {
 		r.PolicyCache[clusterPolicy.Name] = clusterPolicy
 		r.Log.Info(fmt.Sprintf("Updated cached ClusterPolicy %s", clusterPolicy.Name))
-		for key := range r.PolicyCache {
-			log.Log.Info("clusterPolicyController policyCache key:", "key", key)
-		}
 
 	}
 

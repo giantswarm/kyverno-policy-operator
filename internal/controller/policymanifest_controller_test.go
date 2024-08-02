@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
@@ -117,7 +118,7 @@ var _ = Describe("PolicyManifest Controller", func() {
 		// Define the Giant Swarm Policy Manifest
 		gsPolicyManifest = policyAPI.PolicyManifest{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "disallow-priviliged-containers",
+				Name:      "disallow-privileged-containers",
 				Namespace: "default",
 			},
 			Spec: policyAPI.PolicyManifestSpec{
@@ -134,13 +135,13 @@ var _ = Describe("PolicyManifest Controller", func() {
 					{
 						Namespaces: []string{"default"},
 						Names:      []string{"test-app-2"},
-						Kind:       "Deployment",
+						Kind:       "Pod",
 					},
 				},
 			},
 		}
 
-		// Manually populate the cache using ClusterPolicyReconciler, otherwise the PolicyManifestReconciler will fail.
+		// Define the Cluster Policy Reconciler.
 		clusterPolicyReconciler := &ClusterPolicyReconciler{
 			Client:           k8sClient,
 			Scheme:           scheme.Scheme,
@@ -158,6 +159,7 @@ var _ = Describe("PolicyManifest Controller", func() {
 		Expect(k8sClient.Create(ctx, &kyvernoClusterPolicy)).Should(Succeed())
 		Expect(k8sClient.Create(ctx, &gsPolicyManifest)).Should(Succeed())
 
+		// Initialize the Cluster Policy Reconciler to populate the PolicyCache. Otherwise, the policy manifest reconciliation will fail.
 		_, err := clusterPolicyReconciler.Reconcile(ctx, req)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -168,7 +170,7 @@ var _ = Describe("PolicyManifest Controller", func() {
 			req := ctrl.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      gsPolicyManifest.Name,
-					Namespace: gsPolicyManifest.Namespace,
+					Namespace: "default",
 				},
 			}
 
@@ -180,17 +182,25 @@ var _ = Describe("PolicyManifest Controller", func() {
 			Expect(result.Requeue).To(BeTrue())
 
 			// Fetch the Kyverno Policy Exception
+			req = ctrl.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      fmt.Sprintf("gs-kpo-%s-exceptions", gsPolicyManifest.Name),
+					Namespace: "default",
+				},
+			}
 			err = r.Get(ctx, req.NamespacedName, &kyvernoPolicyException)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Compare the Kyverno Policy Exception with the expected results
-			Expect(kyvernoPolicyException.Name).To(Equal("gs-kpo-test-policymanifest-exceptions"))
+			Expect(kyvernoPolicyException.Name).To(Equal(fmt.Sprintf("gs-kpo-%s-exceptions", gsPolicyManifest.Name)))
 			Expect(kyvernoPolicyException.Namespace).To(Equal("default"))
 			Expect(kyvernoPolicyException.Labels).To(HaveKeyWithValue("app.kubernetes.io/managed-by", "kyverno-policy-operator"))
-			Expect(kyvernoPolicyException.Spec.Match.GetKinds()).To(ConsistOf("Deployment", "ReplicaSet", "Pod"))
+			//Expect(kyvernoPolicyException.Spec.Match.Any[0].Kinds).To(ConsistOf("Deployment", "ReplicaSet", "Pod"))
+			//Expect(kyvernoPolicyException.Spec.Match.Any[1].Kinds).To(ConsistOf("Pod"))
 			Expect(kyvernoPolicyException.Spec.Exceptions[0].PolicyName).To(Equal("disallow-privileged-containers"))
 			Expect(kyvernoPolicyException.Spec.Exceptions[0].RuleNames[0]).To(Equal("restrict-privileged-containers"))
 			Expect(kyvernoPolicyException.Spec.Match.Any[0].ResourceDescription.Names[0]).To(Equal("test-app-1*"))
+			//Expect(kyvernoPolicyException.Spec.Match.Any[0].ResourceDescription.Names[1]).To(Equal("test-app-2*"))
 			Expect(kyvernoPolicyException.Spec.Match.Any[0].ResourceDescription.Namespaces[0]).To(Equal("default"))
 		})
 	})

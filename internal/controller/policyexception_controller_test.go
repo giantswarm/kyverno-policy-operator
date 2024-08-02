@@ -136,12 +136,6 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 
 	})
 
-	AfterEach(func() {
-		// We clean up the Kyverno Cluster Policy and the Giant Swarm Policy Exception.
-		Expect(k8sClient.Delete(ctx, &kyvernoClusterPolicy)).Should(Succeed())
-		Expect(k8sClient.Delete(ctx, &gsPolicyException)).Should(Succeed())
-	})
-
 	Context("When succesfully reconciling a GSPolicyException", func() {
 		It("should successfully create a Kyverno Policy Exception", func() {
 			req := ctrl.Request{
@@ -169,6 +163,10 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 			Expect(kyvernoPolicyException.Spec.Exceptions[0].RuleNames[0]).To(Equal("restrict-privileged-containers"))
 			Expect(kyvernoPolicyException.Spec.Match.Any[0].ResourceDescription.Names[0]).To(Equal("test-app-1*"))
 			Expect(kyvernoPolicyException.Spec.Match.Any[0].ResourceDescription.Namespaces[0]).To(Equal("default"))
+
+			// We clean up the Kyverno Cluster Policy and the Giant Swarm Policy Exception.
+			Expect(k8sClient.Delete(ctx, &kyvernoClusterPolicy)).Should(Succeed())
+			Expect(k8sClient.Delete(ctx, &gsPolicyException)).Should(Succeed())
 		})
 	})
 })
