@@ -41,12 +41,12 @@ import (
 // ClusterPolicyReconciler reconciles a ClusterPolicy object
 type ClusterPolicyReconciler struct {
 	client.Client
-	Scheme           *runtime.Scheme
-	Log              logr.Logger
-	ExceptionList    map[string]kyvernov1.ClusterPolicy
-	ExceptionKinds   []string
-	PolicyCache      map[string]kyvernov1.ClusterPolicy
-	MaxJitterPercent int
+	Scheme                      *runtime.Scheme
+	Log                         logr.Logger
+	ExceptionList               map[string]kyvernov1.ClusterPolicy
+	ChartOperatorExceptionKinds []string
+	PolicyCache                 map[string]kyvernov1.ClusterPolicy
+	MaxJitterPercent            int
 }
 
 //+kubebuilder:rbac:groups=kyverno.io,resources=clusterpolicies,verbs=get;list;watch;create;update;patch;delete
@@ -80,7 +80,7 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		r.Log.Info(fmt.Sprintf("Updated cached ClusterPolicy %s", clusterPolicy.Name))
 	}
 
-	if len(r.ExceptionKinds) != 0 {
+	if len(r.ChartOperatorExceptionKinds) != 0 {
 		// Check if the Policy has validate rules
 		if !clusterPolicy.HasValidate() {
 			return ctrl.Result{}, nil
@@ -92,55 +92,54 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			if rule.HasValidate() {
 				for _, kind := range rule.MatchResources.GetKinds() {
 					// Check for Namespace validation
-					for _, destinationKind := range r.ExceptionKinds {
+					for _, destinationKind := range r.ChartOperatorExceptionKinds {
 						if kind == destinationKind {
 							// Append exception to PolicyException
-							if _, exists := r.ExceptionList[clusterPolicy.Name]; !exists {
-								r.ExceptionList[clusterPolicy.Name] = clusterPolicy
+							r.ExceptionList[clusterPolicy.Name] = clusterPolicy
 
-								// Template Kyverno Polex
-								policyException := kyvernov2beta1.PolicyException{}
+							// Template Kyverno Polex
+							policyException := kyvernov2beta1.PolicyException{}
 
-								// Set namespace
-								policyException.Namespace = "giantswarm"
+							// Set namespace
+							policyException.Namespace = "giantswarm"
 
-								// Set name
-								policyException.Name = "chart-operator-generated-sa-bypass"
+							// Set name
+							policyException.Name = "chart-operator-generated-sa-bypass"
 
-								// Set labels
-								policyException.Labels = generateLabels()
+							// Set labels
+							policyException.Labels = generateLabels()
 
-								// Set Background behaviour to false since this Polex is using Subjects
-								background := false
-								policyException.Spec.Background = &background
+							// Set Background behaviour to false since this Polex is using Subjects
+							background := false
+							policyException.Spec.Background = &background
 
-								// Set Spec.Match.All
-								policyException.Spec.Match.All = templateResourceFilters(r.ExceptionKinds)
+							// Set Spec.Match.All
+							policyException.Spec.Match.All = templateResourceFilters(r.ChartOperatorExceptionKinds)
 
-								policies := []kyvernov1.ClusterPolicy{clusterPolicy}
+							policies := []kyvernov1.ClusterPolicy{clusterPolicy}
 
-								// Set .Spec.Exceptions
-								newExceptions := translatePoliciesToExceptions(policies)
-								policyException.Spec.Exceptions = newExceptions
+							// Set .Spec.Exceptions
+							newExceptions := translatePoliciesToExceptions(policies)
+							policyException.Spec.Exceptions = newExceptions
 
-								// Patch PolicyException Kinds
-								gvks, unversioned, err := r.Scheme.ObjectKinds(&policyException)
-								if err != nil {
-									return ctrl.Result{}, err
-								}
-								if !unversioned && len(gvks) == 1 {
-									policyException.SetGroupVersionKind(gvks[0])
-								}
-
-								if err := r.CreateOrUpdate(ctx, &policyException); err != nil {
-									log.Log.Error(err, "Error creating PolicyException")
-								} else {
-									log.Log.Info(fmt.Sprintf("ClusterPolicy %s triggered a PolicyException update: %s", clusterPolicy.Name, client.ObjectKeyFromObject(&policyException)))
-								}
-
-								return ctrl.Result{}, nil
+							// Patch PolicyException Kinds
+							gvks, unversioned, err := r.Scheme.ObjectKinds(&policyException)
+							if err != nil {
+								return ctrl.Result{}, err
 							}
+							if !unversioned && len(gvks) == 1 {
+								policyException.SetGroupVersionKind(gvks[0])
+							}
+
+							if err := r.CreateOrUpdate(ctx, &policyException); err != nil {
+								log.Log.Error(err, "Error creating PolicyException")
+							} else {
+								log.Log.Info(fmt.Sprintf("ClusterPolicy %s triggered a PolicyException update: %s", clusterPolicy.Name, client.ObjectKeyFromObject(&policyException)))
+							}
+
+							return ctrl.Result{}, nil
 						}
+
 					}
 				}
 			}
