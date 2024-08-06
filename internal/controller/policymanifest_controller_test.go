@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package controller_test
 
 import (
 	"context"
@@ -32,6 +32,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	"github.com/giantswarm/kyverno-policy-operator/internal/controller"
 )
 
 var _ = Describe("PolicyManifest Controller", func() {
@@ -39,7 +41,7 @@ var _ = Describe("PolicyManifest Controller", func() {
 		ctx                    context.Context
 		kyvernoClusterPolicy   kyvernov1.ClusterPolicy
 		gsPolicyManifest       policyAPI.PolicyManifest
-		r                      *PolicyManifestReconciler
+		r                      *controller.PolicyManifestReconciler
 		policyCache            map[string]kyvernov1.ClusterPolicy
 		kyvernoPolicyException kyvernov2beta1.PolicyException
 	)
@@ -49,7 +51,7 @@ var _ = Describe("PolicyManifest Controller", func() {
 		policyCache = make(map[string]kyvernov1.ClusterPolicy)
 
 		// Initialize the Policy Manifest Reconciler
-		r = &PolicyManifestReconciler{
+		r = &controller.PolicyManifestReconciler{
 			Client:               k8sClient,
 			Scheme:               scheme.Scheme,
 			Log:                  logger,
@@ -142,7 +144,7 @@ var _ = Describe("PolicyManifest Controller", func() {
 		}
 
 		// Define the Cluster Policy Reconciler.
-		clusterPolicyReconciler := &ClusterPolicyReconciler{
+		clusterPolicyReconciler := &controller.ClusterPolicyReconciler{
 			Client:           k8sClient,
 			Scheme:           scheme.Scheme,
 			Log:              logger,

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package controller_test
 
 import (
 	"context"
@@ -31,6 +31,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	"github.com/giantswarm/kyverno-policy-operator/internal/controller"
 )
 
 var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", func() {
@@ -38,7 +40,7 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 		ctx                    context.Context
 		kyvernoClusterPolicy   kyvernov1.ClusterPolicy
 		gsPolicyException      policyAPI.PolicyException
-		r                      *PolicyExceptionReconciler
+		r                      *controller.PolicyExceptionReconciler
 		kyvernoPolicyException kyvernov2beta1.PolicyException
 	)
 
@@ -46,7 +48,7 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 
 		// We initialize the Policy Exception Reconciler first.
 
-		r = &PolicyExceptionReconciler{
+		r = &controller.PolicyExceptionReconciler{
 			Client:               k8sClient,
 			Scheme:               scheme.Scheme,
 			Log:                  logger,
