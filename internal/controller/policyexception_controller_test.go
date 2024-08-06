@@ -18,7 +18,6 @@ package controller_test
 
 import (
 	"context"
-	"fmt"
 
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
@@ -36,35 +35,33 @@ import (
 	"github.com/giantswarm/kyverno-policy-operator/internal/controller"
 )
 
-var _ = Describe("PolicyManifest Controller", func() {
+var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", func() {
 	var (
 		ctx                    context.Context
 		kyvernoClusterPolicy   kyvernov1.ClusterPolicy
-		gsPolicyManifest       policyAPI.PolicyManifest
-		r                      *controller.PolicyManifestReconciler
-		policyCache            map[string]kyvernov1.ClusterPolicy
+		gsPolicyException      policyAPI.PolicyException
+		r                      *controller.PolicyExceptionReconciler
 		kyvernoPolicyException kyvernov2beta1.PolicyException
 	)
 
 	BeforeEach(func() {
-		// initialize the shared PolicyCache
-		policyCache = make(map[string]kyvernov1.ClusterPolicy)
 
-		// Initialize the Policy Manifest Reconciler
-		r = &controller.PolicyManifestReconciler{
+		// We initialize the Policy Exception Reconciler first.
+
+		r = &controller.PolicyExceptionReconciler{
 			Client:               k8sClient,
 			Scheme:               scheme.Scheme,
 			Log:                  logger,
 			DestinationNamespace: "default",
 			Background:           false,
-			PolicyCache:          policyCache,
 			MaxJitterPercent:     maxJitterPercent,
 		}
 
 		logger := zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true))
 		ctx = log.IntoContext(context.Background(), logger)
 
-		// Define the Kyverno Cluster Policy
+		// We then define the Kyverno Cluster Policy and the Giant Swarm Policy Exception.
+
 		kyvernoClusterPolicy = kyvernov1.ClusterPolicy{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "kyverno.io/v1",
@@ -86,30 +83,30 @@ var _ = Describe("PolicyManifest Controller", func() {
 							Message: "Privileged mode is disallowed. The fields spec.containers[*].securityContext.privileged and spec.initContainers[*].securityContext.privileged must be unset or set to `false`.",
 							RawPattern: &apiextv1.JSON{
 								Raw: []byte(`{
-									"spec": {
-										"ephemeralContainers": [
-											{
-												"securityContext": {
-													"privileged": "false"
-												}
-											}
+          							"spec": {
+            							"ephemeralContainers": [
+              								{
+                								"securityContext": {
+												  "privileged": "false"
+                								}
+              								}	
 										],
-										"initContainers": [
-											{
+            							"initContainers": [
+              								{
+                								"securityContext": {
+                  								  "privileged": "false"
+                								}
+              								}					
+            							],
+            							"containers": [
+              								{
 												"securityContext": {
-													"privileged": "false"
-												}
-											}
-										],
-										"containers": [
-											{
-												"securityContext": {
-													"privileged": "false"
-												}
-											}
-										]
-									}
-								}`),
+                  								  "privileged": "false"
+                							}
+              							}
+            						]
+								}
+        					}`),
 							},
 						},
 					},
@@ -117,98 +114,62 @@ var _ = Describe("PolicyManifest Controller", func() {
 			},
 		}
 
-		// Define the Giant Swarm Policy Manifest
-		gsPolicyManifest = policyAPI.PolicyManifest{
+		gsPolicyException = policyAPI.PolicyException{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "disallow-privileged-containers",
+				Name:      "test-policyexception",
 				Namespace: "default",
 			},
-			Spec: policyAPI.PolicyManifestSpec{
-				Mode: "enforce",
-				Args: []string{"--test-arg-1"},
-				Exceptions: []policyAPI.Target{
+
+			Spec: policyAPI.PolicyExceptionSpec{
+				Targets: []policyAPI.Target{
 					{
 						Namespaces: []string{"default"},
 						Names:      []string{"test-app-1"},
 						Kind:       "Deployment",
 					},
 				},
-				AutomatedExceptions: []policyAPI.Target{
-					{
-						Namespaces: []string{"default"},
-						Names:      []string{"test-app-2"},
-						Kind:       "Pod",
-					},
-				},
+				Policies: []string{"disallow-privileged-containers"},
 			},
 		}
 
-		// Define the Cluster Policy Reconciler.
-		clusterPolicyReconciler := &controller.ClusterPolicyReconciler{
-			Client:           k8sClient,
-			Scheme:           scheme.Scheme,
-			Log:              logger,
-			PolicyCache:      policyCache,
-			MaxJitterPercent: maxJitterPercent,
-		}
-		req := ctrl.Request{
-			NamespacedName: types.NamespacedName{
-				Name: kyvernoClusterPolicy.Name,
-			},
-		}
-
-		// Create the Kyverno Cluster Policy and the Giant Swarm Policy Manifest in the cluster
+		// We put the Kyverno Cluster Policy and the Giant Swarm Policy Exception in the cluster.
 		Expect(k8sClient.Create(ctx, &kyvernoClusterPolicy)).Should(Succeed())
-		Expect(k8sClient.Create(ctx, &gsPolicyManifest)).Should(Succeed())
-
-		// Initialize the Cluster Policy Reconciler to populate the PolicyCache. Otherwise, the policy manifest reconciliation will fail.
-		_, err := clusterPolicyReconciler.Reconcile(ctx, req)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(k8sClient.Create(ctx, &gsPolicyException)).Should(Succeed())
 
 	})
 
 	AfterEach(func() {
 		// Clean up the Kyverno Cluster Policy and the Giant Swarm Policy Manifest
 		Expect(k8sClient.Delete(ctx, &kyvernoClusterPolicy)).Should(Succeed())
-		Expect(k8sClient.Delete(ctx, &gsPolicyManifest)).Should(Succeed())
+		Expect(k8sClient.Delete(ctx, &gsPolicyException)).Should(Succeed())
 	})
 
-	Context("When successfully reconciling a PolicyManifest", func() {
+	Context("When succesfully reconciling a GSPolicyException", func() {
 		It("should successfully create a Kyverno Policy Exception", func() {
 			req := ctrl.Request{
 				NamespacedName: types.NamespacedName{
-					Name:      gsPolicyManifest.Name,
-					Namespace: "default",
+					Name:      gsPolicyException.Name,
+					Namespace: gsPolicyException.Namespace,
 				},
 			}
-
-			Expect(policyCache).NotTo(BeEmpty())
-
-			// Test for a successful reconciliation
+			// First we test for a successful reconciliation
 			result, err := r.Reconcile(ctx, req)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Requeue).To(BeTrue())
 
-			// Fetch the Kyverno Policy Exception
-			req = ctrl.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      fmt.Sprintf("gs-kpo-%s-exceptions", gsPolicyManifest.Name),
-					Namespace: "default",
-				},
-			}
+			// Then we test if we can fetch the Kyverno Policy Exception.
 			err = r.Get(ctx, req.NamespacedName, &kyvernoPolicyException)
+
 			Expect(err).NotTo(HaveOccurred())
 
-			// Compare the Kyverno Policy Exception with the expected results
-			Expect(kyvernoPolicyException.Name).To(Equal(fmt.Sprintf("gs-kpo-%s-exceptions", gsPolicyManifest.Name)))
+			// Now we compare the Kyverno Policy Exception with the expected results.
+			Expect(kyvernoPolicyException.Name).To(Equal("test-policyexception"))
 			Expect(kyvernoPolicyException.Namespace).To(Equal("default"))
 			Expect(kyvernoPolicyException.Labels).To(HaveKeyWithValue("app.kubernetes.io/managed-by", "kyverno-policy-operator"))
-			//Expect(kyvernoPolicyException.Spec.Match.Any[0].Kinds).To(ConsistOf("Deployment", "ReplicaSet", "Pod"))
-			//Expect(kyvernoPolicyException.Spec.Match.Any[1].Kinds).To(ConsistOf("Pod"))
+			Expect(kyvernoPolicyException.Spec.Match.GetKinds()).To(ConsistOf("Deployment", "ReplicaSet", "Pod"))
 			Expect(kyvernoPolicyException.Spec.Exceptions[0].PolicyName).To(Equal("disallow-privileged-containers"))
 			Expect(kyvernoPolicyException.Spec.Exceptions[0].RuleNames[0]).To(Equal("restrict-privileged-containers"))
 			Expect(kyvernoPolicyException.Spec.Match.Any[0].ResourceDescription.Names[0]).To(Equal("test-app-1*"))
-			//Expect(kyvernoPolicyException.Spec.Match.Any[0].ResourceDescription.Names[1]).To(Equal("test-app-2*"))
 			Expect(kyvernoPolicyException.Spec.Match.Any[0].ResourceDescription.Namespaces[0]).To(Equal("default"))
 		})
 	})
