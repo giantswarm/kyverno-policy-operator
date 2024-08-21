@@ -12,14 +12,14 @@ global:
     registry: "gsoci.azurecr.io"
   # Enable PSPs
   podSecurityStandards:
-    enforced: false
+    enforced: true
 
 ciliumNetworkPolicy:
   enabled: true
 
 # We install CRDs through a Job with the helm specific crd folder.
 crds:
-  install: true
+  install: false
   image:
     tag: "1.27.4"
   resources:
