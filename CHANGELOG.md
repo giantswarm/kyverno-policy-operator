@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Changed the functions in `utils.go`
 - Changed the `policyexception_controller` and `clusterpolicy_controller` to use `policy_api`.
+- Disable PSPs and CRD install job.
 
 ## [0.0.7] - 2024-01-16
 
