@@ -271,3 +271,6 @@ replace github.com/lestrrat-go/jwx/v2 v2.0.18 => github.com/lestrrat-go/jwx/v2 v
 replace github.com/sigstore/cosign/v2 v2.2.2 => github.com/sigstore/cosign/v2 v2.2.4
 
 replace github.com/hashicorp/go-retryablehttp v0.7.5 => github.com/hashicorp/go-retryablehttp v0.7.7
+
+// From https://github.com/kyverno/kyverno/blob/2cd462570ac092d2101caea95b45b0a27bb55e29/go.mod#L395C1-L395C126
+replace k8s.io/pod-security-admission v0.29.2 => github.com/kyverno/pod-security-admission v0.0.0-20240715131510-7fb54a8d376d

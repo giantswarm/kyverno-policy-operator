@@ -465,6 +465,8 @@ github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
 github.com/kyverno/kyverno v1.12.5 h1:wDo1KZaG++T3Lp3mN2Z5Cwo/7bHAkX+mxrTSxJH/z10=
 github.com/kyverno/kyverno v1.12.5/go.mod h1:2zAmci80SENttczv3VSS21Be7dVc/UbGZmPdqmS8HS0=
+github.com/kyverno/pod-security-admission v0.0.0-20240715131510-7fb54a8d376d h1:JNgsQw8TtxEeGA3lkra0qMG+B4fMhUwZiMRdJ8NQah4=
+github.com/kyverno/pod-security-admission v0.0.0-20240715131510-7fb54a8d376d/go.mod h1:wJpTzOGwDdTbVbIqwBuAX7io1eDQIuW/UfMaK5/Xzn0=
 github.com/letsencrypt/boulder v0.0.0-20240127020530-97a19b18d21e h1:7QjzPboPE+0pVMsZP1sz1mN26m6vew78YmcIZz1FMrg=
 github.com/letsencrypt/boulder v0.0.0-20240127020530-97a19b18d21e/go.mod h1:9SC12sRytSBV00C26tvlj7GY131IVUQI0qo4v3U/3Mo=
 github.com/lib/pq v1.10.9 h1:YXG7RB+JIjhP29X+OtkiDnYaXQwpS4JEWq7dtCCRUEw=
@@ -951,8 +953,6 @@ k8s.io/kube-openapi v0.0.0-20240827152857-f7e401e7b4c2 h1:GKE9U8BH16uynoxQii0auT
 k8s.io/kube-openapi v0.0.0-20240827152857-f7e401e7b4c2/go.mod h1:coRQXBK9NxO98XUv3ZD6AK3xzHCxV6+b7lrquKwaKzA=
 k8s.io/kubectl v0.29.2 h1:uaDYaBhumvkwz0S2XHt36fK0v5IdNgL7HyUniwb2IUo=
 k8s.io/kubectl v0.29.2/go.mod h1:BhizuYBGcKaHWyq+G7txGw2fXg576QbPrrnQdQDZgqI=
-k8s.io/pod-security-admission v0.29.2 h1:0/hhZzk1rPmUG2D02OHPWoZgo/3D5Wi/TXfwByD3xLs=
-k8s.io/pod-security-admission v0.29.2/go.mod h1:HBi3TJjRgPJmzdkbqtTxZshMf74ppA7Hth4dxGmUZj0=
 k8s.io/utils v0.0.0-20240711033017-18e509b52bc8 h1:pUdcCO1Lk/tbT5ztQWOBi5HBgbBP1J8+AsQnQCKsi8A=
 k8s.io/utils v0.0.0-20240711033017-18e509b52bc8/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
 sigs.k8s.io/controller-runtime v0.19.0 h1:nWVM7aq+Il2ABxwiCizrVDSlmDcshi9llbaFbC0ji/Q=
