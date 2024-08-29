@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Modify `PolicyExceptions` CRD to allow for easy adoption by `policy-meta-operator` chart.
+
 ## [0.0.7] - 2024-01-16
 
 ### Changed
