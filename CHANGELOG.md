@@ -9,13 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added the `policymanifest_controller`. 
+- Added the `policymanifest_controller`.
 
 ### Changed
 
 - Changed the functions in `utils.go`
 - Changed the `policyexception_controller` and `clusterpolicy_controller` to use `policy_api`.
 - Disable PSPs and CRD install job.
+
+## [0.0.8] - 2024-08-29
+
+### Changed
+
+- Modify `PolicyExceptions` CRD to allow for easy adoption by `policy-meta-operator` chart.
 
 ## [0.0.7] - 2024-01-16
 
@@ -57,7 +63,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First release of the Kyverno Policy Operator App.
 
-[Unreleased]: https://github.com/giantswarm/kyverno-policy-operator/compare/v0.0.7...HEAD
+[Unreleased]: https://github.com/giantswarm/kyverno-policy-operator/compare/v0.0.8...HEAD
+[0.0.8]: https://github.com/giantswarm/kyverno-policy-operator/compare/v0.0.7...v0.0.8
 [0.0.7]: https://github.com/giantswarm/kyverno-policy-operator/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/giantswarm/kyverno-policy-operator/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/giantswarm/kyverno-policy-operator/compare/v0.0.4...v0.0.5
