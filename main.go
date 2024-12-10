@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -25,9 +26,12 @@ import (
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 
+	"github.com/edgedb/edgedb-go"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
+
+	apiextensions "github.com/giantswarm/apiextensions-application/api/v1alpha1"
 
 	"github.com/giantswarm/kyverno-policy-operator/internal/controller"
 
@@ -42,6 +46,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
+
+	edgedbutils "github.com/giantswarm/kyverno-policy-operator/internal/utils/edgedb"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -49,6 +55,21 @@ var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
 )
+
+func initEdgeDB() *edgedb.Client {
+	// Initialize schemas
+	setupLog.Info("Setting up EdgeDB schemas")
+	var ctx = context.Background()
+	edgedbClient := edgedbutils.GetEDGEDBClient(ctx, edgedb.Options{})
+
+	err := edgedbClient.EnsureConnected(ctx)
+	if err != nil {
+		setupLog.Error(err, "Error connecting to edgedb")
+		os.Exit(1)
+	}
+
+	return edgedbClient
+}
 
 func init() {
 	err := kyvernov2beta1.AddToScheme(scheme)
@@ -63,6 +84,7 @@ func init() {
 
 	utilruntime.Must(policyAPI.AddToScheme(scheme))
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(apiextensions.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -129,6 +151,18 @@ func main() {
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
+	}
+
+	edgedbClient := initEdgeDB()
+
+	if err = (&controller.ChartReconciler{
+		Client:           mgr.GetClient(),
+		Scheme:           mgr.GetScheme(),
+		MaxJitterPercent: maxJitterPercent,
+		EdgeDBClient:     edgedbClient,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "GiantSwarmChart")
 		os.Exit(1)
 	}
 
