@@ -58,7 +58,7 @@ var (
 
 func initEdgeDB() *edgedb.Client {
 	// Initialize schemas
-	setupLog.Info("Setting up EdgeDB schemas")
+	setupLog.Info("Connecting to EdgeDB")
 	var ctx = context.Background()
 	edgedbClient := edgedbutils.GetEDGEDBClient(ctx, edgedb.Options{})
 
