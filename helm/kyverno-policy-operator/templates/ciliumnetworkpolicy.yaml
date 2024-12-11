@@ -13,6 +13,14 @@ spec:
   egress:
     - toEntities:
         - kube-apiserver
+    - toEndpoint:
+        - matchLabels:
+            app.kubernetes.io/name: edgedb
+            app.kubernetes.io/instance: edgedb
+      toPorts:
+        - ports:
+            - port: 5656
+              protocol: TCP
   ingress:
     - fromEntities:
         - kube-apiserver
