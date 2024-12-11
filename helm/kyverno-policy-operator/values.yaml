@@ -65,6 +65,15 @@ resources:
     cpu: 100m
     memory: 220Mi
 
+edgedb:
+  host: edgedb
+  port: 5656
+  user: edgedb
+  passwordSecret:
+    name: edgedb-server-password
+  tlsSecret:
+    name: edgedb-tls
+
 policyOperator:
   # Set where to install PolicyExceptions
   destinationNamespace: "policy-exceptions"
