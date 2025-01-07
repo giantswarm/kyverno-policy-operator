@@ -230,10 +230,10 @@ require (
 	golang.org/x/mod v0.21.0 // indirect
 	golang.org/x/net v0.30.0 // indirect
 	golang.org/x/oauth2 v0.21.0 // indirect
-	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.26.0 // indirect
-	golang.org/x/term v0.25.0 // indirect
-	golang.org/x/text v0.19.0 // indirect
+	golang.org/x/sync v0.10.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
+	golang.org/x/term v0.28.0 // indirect
+	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.26.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
@@ -274,3 +274,7 @@ replace github.com/hashicorp/go-retryablehttp v0.7.5 => github.com/hashicorp/go-
 
 // From https://github.com/kyverno/kyverno/blob/2cd462570ac092d2101caea95b45b0a27bb55e29/go.mod#L395C1-L395C126
 replace k8s.io/pod-security-admission v0.29.2 => github.com/kyverno/pod-security-admission v0.0.0-20240715131510-7fb54a8d376d
+
+replace golang.org/x/crypto v0.28.0 => golang.org/x/crypto v0.32.0
+
+replace github.com/golang-jwt/jwt/v4 v4.5.0 => github.com/golang-jwt/jwt/v4 v4.5.1
