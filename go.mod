@@ -241,14 +241,14 @@ require (
 	go.step.sm/crypto v0.55.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/crypto v0.30.0 // indirect
+	golang.org/x/crypto v0.32.0 // indirect
 	golang.org/x/exp v0.0.0-20241204233417-43b7b7cde48d // indirect
 	golang.org/x/mod v0.22.0 // indirect
 	golang.org/x/net v0.32.0 // indirect
 	golang.org/x/oauth2 v0.24.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
-	golang.org/x/term v0.27.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
+	golang.org/x/term v0.28.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/time v0.8.0 // indirect
 	golang.org/x/tools v0.28.0 // indirect
@@ -289,3 +289,7 @@ replace github.com/hashicorp/go-retryablehttp v0.7.5 => github.com/hashicorp/go-
 
 // From https://github.com/kyverno/kyverno/blob/2cd462570ac092d2101caea95b45b0a27bb55e29/go.mod#L395C1-L395C126
 replace k8s.io/pod-security-admission v0.29.2 => github.com/kyverno/pod-security-admission v0.0.0-20240715131510-7fb54a8d376d
+
+replace golang.org/x/crypto v0.30.0 => golang.org/x/crypto v0.32.0
+
+replace golang.org/x/net v0.32.0 => golang.org/x/net v0.34.0
