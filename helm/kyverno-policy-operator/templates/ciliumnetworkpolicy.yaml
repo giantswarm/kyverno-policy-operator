@@ -19,7 +19,7 @@ spec:
             app.kubernetes.io/instance: edgedb
       toPorts:
         - ports:
-            - port: 5656
+            - port: "5656"
               protocol: TCP
   ingress:
     - fromEntities:
