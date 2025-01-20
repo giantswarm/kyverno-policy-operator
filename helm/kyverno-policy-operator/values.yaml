@@ -19,9 +19,9 @@ ciliumNetworkPolicy:
 
 # We install CRDs through a Job with the helm specific crd folder.
 crds:
-  install: false
+  install: true
   image:
-    tag: "1.27.4"
+    tag: "1.32.0"
   resources:
     requests:
       cpu: 100m
