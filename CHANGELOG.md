@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Updated CRDs and fixed labels and annotations for `policy-meta-operator` deployment.
+
 ## [0.1.1] - 2025-01-20
 
 ### Changed
