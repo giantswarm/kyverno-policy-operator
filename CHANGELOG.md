@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Disable CRD install job and let them be installed by `policy-meta-operator`.
+
 ## [0.1.2] - 2025-01-28
 
 ### Changed
