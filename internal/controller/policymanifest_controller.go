@@ -66,6 +66,29 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}
 
+	// Check if the PolicyManifest has any exceptions defined before creation
+	if len(polman.Spec.Exceptions) == 0 && len(polman.Spec.AutomatedExceptions) == 0 {
+		// Create label selector
+		labelSelector := client.MatchingLabels{
+			GSPolicy:  polman.ObjectMeta.Labels[GSPolicy],
+			ManagedBy: ComponentName,
+		}
+		// Delete Exception
+		if err := r.DeleteAllOf(ctx, &kyvernov2beta1.PolicyException{}, client.InNamespace(r.DestinationNamespace), labelSelector); err != nil {
+			if apierrors.IsNotFound(err) {
+				return ctrl.Result{}, nil
+			}
+
+			log.Log.Error(err, fmt.Sprintf("unable to delete PolicyException for %s", polman.ObjectMeta.Name))
+			return ctrl.Result{}, nil
+		}
+
+		log.Log.Info(fmt.Sprintf("PolicyException for %s deleted", polman.ObjectMeta.Name))
+
+		// Exit since there are no exceptions
+		return utils.JitterRequeue(DefaultRequeueDuration, r.MaxJitterPercent, r.Log), nil
+	}
+
 	kyvernoPolicyException := kyvernov2beta1.PolicyException{}
 	// Set kyvernoPolicyException destination namespace.
 	kyvernoPolicyException.Namespace = r.DestinationNamespace
@@ -73,7 +96,7 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	kyvernoPolicyException.Name = fmt.Sprintf("gs-kpo-%s-exceptions", polman.ObjectMeta.Name)
 	// Set labels.
 	kyvernoPolicyException.Labels = generateLabels()
-	kyvernoPolicyException.Labels["policy.giantswarm.io/policy"] = polman.ObjectMeta.Labels["policy.giantswarm.io/policy"]
+	kyvernoPolicyException.Labels[GSPolicy] = polman.ObjectMeta.Labels[GSPolicy]
 
 	kyvernoPolicyException.Spec.Background = &r.Background
 

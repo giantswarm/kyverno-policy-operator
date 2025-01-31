@@ -13,6 +13,7 @@ var DefaultRequeueDuration = (time.Minute * 5)
 const (
 	ComponentName = "kyverno-policy-operator"
 	ManagedBy     = "app.kubernetes.io/managed-by"
+	GSPolicy      = "policy.giantswarm.io/policy"
 	MaxNameLength = 58
 )
 
@@ -20,6 +21,7 @@ const (
 func generateLabels() map[string]string {
 	labels := map[string]string{
 		ManagedBy: ComponentName,
+		GSPolicy:  "",
 	}
 	return labels
 }
