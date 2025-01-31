@@ -66,6 +66,13 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}
 
+	// Check if the PolicyManifest has any exceptions defined before creation
+	if len(polman.Spec.Exceptions) == 0 && len(polman.Spec.AutomatedExceptions) == 0 {
+		// TODO: Cleanup exceptions if they exist
+		// Exit since there are no exceptions
+		return utils.JitterRequeue(DefaultRequeueDuration, r.MaxJitterPercent, r.Log), nil
+	}
+
 	kyvernoPolicyException := kyvernov2beta1.PolicyException{}
 	// Set kyvernoPolicyException destination namespace.
 	kyvernoPolicyException.Namespace = r.DestinationNamespace
