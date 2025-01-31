@@ -82,6 +82,9 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			log.Log.Error(err, fmt.Sprintf("unable to delete PolicyException for %s", polman.ObjectMeta.Name))
 			return ctrl.Result{}, nil
 		}
+
+		log.Log.Info(fmt.Sprintf("PolicyException for %s deleted", polman.ObjectMeta.Name))
+
 		// Exit since there are no exceptions
 		return utils.JitterRequeue(DefaultRequeueDuration, r.MaxJitterPercent, r.Log), nil
 	}
