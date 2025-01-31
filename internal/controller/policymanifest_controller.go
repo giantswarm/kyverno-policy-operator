@@ -75,8 +75,11 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 		// Delete Exception
 		if err := r.DeleteAllOf(ctx, &kyvernov2beta1.PolicyException{}, client.InNamespace(r.DestinationNamespace), labelSelector); err != nil {
-			log.Log.Error(err, fmt.Sprintf("unable to delete PolicyException for %s", polman.ObjectMeta.Name))
+			if apierrors.IsNotFound(err) {
+				return ctrl.Result{}, nil
+			}
 
+			log.Log.Error(err, fmt.Sprintf("unable to delete PolicyException for %s", polman.ObjectMeta.Name))
 			return ctrl.Result{}, nil
 		}
 		// Exit since there are no exceptions
