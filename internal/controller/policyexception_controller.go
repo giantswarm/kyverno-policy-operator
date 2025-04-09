@@ -157,20 +157,21 @@ func (r *PolicyExceptionReconciler) CreateOrUpdate(ctx context.Context, obj clie
 
 // generateKinds creates the subresources necessary for top level controllers like Deployment or StatefulSet
 func generateExceptionKinds(resourceKind string) []string {
-	exceptionKinds := []string{resourceKind}
-
-	switch resourceKind {
-	case KindDeployment:
-		exceptionKinds = append(exceptionKinds, KindReplicaSet)
-	case KindCronJob:
-		exceptionKinds = append(exceptionKinds, KindJob)
-	case KindPod:
-		// Special case: if resourceKind is Pod, don't add Pod again
-		return exceptionKinds
+	// Adds the subresources to the exception list for each Kind
+	var exceptionKinds []string
+	exceptionKinds = append(exceptionKinds, resourceKind)
+	// Append ReplicaSets
+	if resourceKind == "Deployment" {
+		exceptionKinds = append(exceptionKinds, "ReplicaSet")
+		// Append Jobs
+	} else if resourceKind == "CronJob" {
+		exceptionKinds = append(exceptionKinds, "Job")
+	}
+	// Always append Pods except if they are the initial resource Kind
+	if resourceKind != "Pod" {
+		exceptionKinds = append(exceptionKinds, "Pod")
 	}
 
-	// For all resource kinds except Pod, add Pod
-	exceptionKinds = append(exceptionKinds, KindPod)
 	return exceptionKinds
 }
 
