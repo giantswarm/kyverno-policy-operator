@@ -63,7 +63,7 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		// Error fetching the report
 
 		// Check if the ClusterPolicy was deleted
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			// Ignore
 			return ctrl.Result{}, nil
 		}
