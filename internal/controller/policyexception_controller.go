@@ -63,7 +63,7 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		// Error fetching the report
 
 		// Check if the PolicyException was deleted
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			// Ignore
 			return ctrl.Result{}, nil
 		}
