@@ -22,7 +22,7 @@ import (
 
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
-
+        apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
