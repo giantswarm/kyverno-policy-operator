@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -47,6 +46,7 @@ const (
 	KindCronJob    = "CronJob"
 	KindJob        = "Job"
 	KindPod        = "Pod"
+	// Add other resource kinds as needed
 )
 
 // PolicyExceptionReconciler reconciles a PolicyException object
