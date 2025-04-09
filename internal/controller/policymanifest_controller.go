@@ -108,7 +108,7 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	var ok bool
 
 	if kyvernoPolicy, ok = r.PolicyCache[polman.Name]; !ok {
-		log.Log.Error(fmt.Errorf("Policy %s not found in cache", polman.Name), "unable to fetch Kyverno Policy from cache")
+		log.Log.Error(fmt.Errorf("Policy %s not found in cache", polman.ObjectMeta.Name), "unable to fetch Kyverno Policy from cache")
 		return ctrl.Result{Requeue: true}, nil
 	}
 
