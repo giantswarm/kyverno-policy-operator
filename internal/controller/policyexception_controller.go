@@ -39,16 +39,6 @@ import (
 	"github.com/giantswarm/kyverno-policy-operator/internal/utils"
 )
 
-// ResourceKind constants for Kubernetes resource types
-const (
-	KindDeployment = "Deployment"
-	KindReplicaSet = "ReplicaSet"
-	KindCronJob    = "CronJob"
-	KindJob        = "Job"
-	KindPod        = "Pod"
-	// Add other resource kinds as needed
-)
-
 // PolicyExceptionReconciler reconciles a PolicyException object
 type PolicyExceptionReconciler struct {
 	client.Client
