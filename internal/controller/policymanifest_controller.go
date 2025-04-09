@@ -70,7 +70,7 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if len(polman.Spec.Exceptions) == 0 && len(polman.Spec.AutomatedExceptions) == 0 {
 		// Create label selector
 		labelSelector := client.MatchingLabels{
-			GSPolicy:  polman.ObjectMeta.Labels[GSPolicy],
+			GSPolicy:  polman.Labels[GSPolicy],
 			ManagedBy: ComponentName,
 		}
 		// Delete Exception
@@ -79,11 +79,11 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				return ctrl.Result{}, nil
 			}
 
-			log.Log.Error(err, fmt.Sprintf("unable to delete PolicyException for %s", polman.ObjectMeta.Name))
+			log.Log.Error(err, fmt.Sprintf("unable to delete PolicyException for %s", polman.Name))
 			return ctrl.Result{}, nil
 		}
 
-		log.Log.Info(fmt.Sprintf("PolicyException for %s deleted", polman.ObjectMeta.Name))
+		log.Log.Info(fmt.Sprintf("PolicyException for %s deleted", polman.Name))
 
 		// Exit since there are no exceptions
 		return utils.JitterRequeue(DefaultRequeueDuration, r.MaxJitterPercent, r.Log), nil
@@ -93,10 +93,10 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	// Set kyvernoPolicyException destination namespace.
 	kyvernoPolicyException.Namespace = r.DestinationNamespace
 	// Set kyvernoPolicyException name.
-	kyvernoPolicyException.Name = fmt.Sprintf("gs-kpo-%s-exceptions", polman.ObjectMeta.Name)
+	kyvernoPolicyException.Name = fmt.Sprintf("gs-kpo-%s-exceptions", polman.Name)
 	// Set labels.
 	kyvernoPolicyException.Labels = generateLabels()
-	kyvernoPolicyException.Labels[GSPolicy] = polman.ObjectMeta.Labels[GSPolicy]
+	kyvernoPolicyException.Labels[GSPolicy] = polman.Labels[GSPolicy]
 
 	kyvernoPolicyException.Spec.Background = &r.Background
 
@@ -108,7 +108,7 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	var ok bool
 
 	if kyvernoPolicy, ok = r.PolicyCache[polman.Name]; !ok {
-		log.Log.Error(fmt.Errorf("Policy %s not found in cache", polman.Name), "unable to fetch Kyverno Policy from cache")
+		log.Log.Error(fmt.Errorf("policy %s not found in cache", polman.Name), "unable to fetch Kyverno Policy from cache")
 		return ctrl.Result{Requeue: true}, nil
 	}
 

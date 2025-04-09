@@ -23,7 +23,7 @@ import (
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
 
 	"k8s.io/apimachinery/pkg/api/errors"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
@@ -47,7 +47,6 @@ const (
 	KindCronJob    = "CronJob"
 	KindJob        = "Job"
 	KindPod        = "Pod"
-	// Add other resource kinds as needed
 )
 
 // PolicyExceptionReconciler reconciles a PolicyException object
@@ -74,7 +73,7 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		// Error fetching the report
 
 		// Check if the PolicyException was deleted
-		if apierrors.IsNotFound(err) {
+		if errors.IsNotFound(err) {
 			// Ignore
 			return ctrl.Result{}, nil
 		}
@@ -168,21 +167,20 @@ func (r *PolicyExceptionReconciler) CreateOrUpdate(ctx context.Context, obj clie
 
 // generateKinds creates the subresources necessary for top level controllers like Deployment or StatefulSet
 func generateExceptionKinds(resourceKind string) []string {
-	// Adds the subresources to the exception list for each Kind
-	var exceptionKinds []string
-	exceptionKinds = append(exceptionKinds, resourceKind)
-	// Append ReplicaSets
-	if resourceKind == "Deployment" {
-		exceptionKinds = append(exceptionKinds, "ReplicaSet")
-		// Append Jobs
-	} else if resourceKind == "CronJob" {
-		exceptionKinds = append(exceptionKinds, "Job")
-	}
-	// Always append Pods except if they are the initial resource Kind
-	if resourceKind != "Pod" {
-		exceptionKinds = append(exceptionKinds, "Pod")
+	exceptionKinds := []string{resourceKind}
+
+	switch resourceKind {
+	case KindDeployment:
+		exceptionKinds = append(exceptionKinds, KindReplicaSet)
+	case KindCronJob:
+		exceptionKinds = append(exceptionKinds, KindJob)
+	case KindPod:
+		// Special case: if resourceKind is Pod, don't add Pod again
+		return exceptionKinds
 	}
 
+	// For all resource kinds except Pod, add Pod
+	exceptionKinds = append(exceptionKinds, KindPod)
 	return exceptionKinds
 }
 
