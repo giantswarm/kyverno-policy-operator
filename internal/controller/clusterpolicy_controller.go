@@ -24,8 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
 	"github.com/go-logr/logr"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -63,7 +61,7 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		// Error fetching the report
 
 		// Check if the ClusterPolicy was deleted
-		if apierrors.IsNotFound(err) {
+		if errors.IsNotFound(err) {
 			// Ignore
 			return ctrl.Result{}, nil
 		}
