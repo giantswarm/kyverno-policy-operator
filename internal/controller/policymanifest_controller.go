@@ -24,7 +24,7 @@ import (
 	"github.com/go-logr/logr"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 	kyvernov2beta1 "github.com/kyverno/kyverno/api/kyverno/v2beta1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -57,7 +57,7 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		if err := r.Get(ctx, req.NamespacedName, &polman); err != nil {
 			// Error fetching the policy manifest
 
-			if apierrors.IsNotFound(err) {
+			if errors.IsNotFound(err) {
 				return ctrl.Result{}, nil
 			}
 
@@ -75,7 +75,7 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 		// Delete Exception
 		if err := r.DeleteAllOf(ctx, &kyvernov2beta1.PolicyException{}, client.InNamespace(r.DestinationNamespace), labelSelector); err != nil {
-			if apierrors.IsNotFound(err) {
+			if errors.IsNotFound(err) {
 				return ctrl.Result{}, nil
 			}
 
