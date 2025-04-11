@@ -1,3 +1,6 @@
-CVE-2024-48921 until=2025-12-12
-CVE-2024-45338 until=2025-02-06 # golang.org/x/net@v0.30.0
-CVE-2024-8260 until=2025-02-06 # github.com/open-policy-agent/opa@v0.63.0
+CVE-2024-48921 until=2025-05-11 # github.com/kyverno/kyverno@v1.12.5
+CVE-2025-22870 until=2025-05-11 # golang.org/x/net@v0.33.0
+CVE-2025-22872 until=2025-05-11 # golang.org/x/net@v0.33.0
+CVE-2025-29778 until=2025-05-11 # github.com/kyverno/kyverno@v1.12.5
+CVE-2025-30204 until=2025-05-11 # github.com/golang-jwt/jwt/v4@v4.5.1
+CVE-2025-27144 until=2025-05-11 # github.com/go-jose/go-jose/v3@v3.0.3
