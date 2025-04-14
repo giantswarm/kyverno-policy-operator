@@ -93,7 +93,7 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	// Set kyvernoPolicyException destination namespace.
 	kyvernoPolicyException.Namespace = r.DestinationNamespace
 	// Set kyvernoPolicyException name.
-	kyvernoPolicyException.Name = fmt.Sprintf("gs-kpo-%s-exceptions", polman.ObjectMeta.Name)
+	kyvernoPolicyException.Name = fmt.Sprintf("gs-kpo-%s", polman.ObjectMeta.Name)
 	// Set labels.
 	kyvernoPolicyException.Labels = generateLabels()
 	kyvernoPolicyException.Labels[GSPolicy] = polman.ObjectMeta.Labels[GSPolicy]
