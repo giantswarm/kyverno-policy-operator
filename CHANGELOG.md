@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Remove "ObjectMeta" from selector and use tagged switch on resourceKind.
+- Resolve updated code linter findings.
 
 ## [0.1.4] - 2025-01-31
 
