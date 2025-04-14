@@ -38,7 +38,6 @@ import (
 	"github.com/giantswarm/kyverno-policy-operator/internal/utils"
 )
 
-// Add these constants at the package level, after imports
 const (
 	KindDeployment = "Deployment"
 	KindReplicaSet = "ReplicaSet"
@@ -172,13 +171,12 @@ func generateExceptionKinds(resourceKind string) []string {
 		exceptionKinds = append(exceptionKinds, KindReplicaSet)
 	case KindCronJob:
 		exceptionKinds = append(exceptionKinds, KindJob)
-	case KindPod:
-		// Special case: if resourceKind is Pod, don't add Pod again
-		return exceptionKinds
 	}
 
-	// For all resource kinds except Pod, add Pod
-	exceptionKinds = append(exceptionKinds, KindPod)
+	if resourceKind != KindPod {
+		exceptionKinds = append(exceptionKinds, KindPod)
+	}
+
 	return exceptionKinds
 }
 
