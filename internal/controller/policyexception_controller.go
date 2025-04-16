@@ -22,7 +22,6 @@ import (
 
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
@@ -37,6 +36,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/giantswarm/kyverno-policy-operator/internal/utils"
+)
+
+const (
+	KindDeployment = "Deployment"
+	KindReplicaSet = "ReplicaSet"
+	KindCronJob    = "CronJob"
+	KindJob        = "Job"
+	KindPod        = "Pod"
 )
 
 // PolicyExceptionReconciler reconciles a PolicyException object
@@ -63,7 +70,7 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		// Error fetching the report
 
 		// Check if the PolicyException was deleted
-		if apierrors.IsNotFound(err) {
+		if errors.IsNotFound(err) {
 			// Ignore
 			return ctrl.Result{}, nil
 		}
@@ -157,19 +164,17 @@ func (r *PolicyExceptionReconciler) CreateOrUpdate(ctx context.Context, obj clie
 
 // generateKinds creates the subresources necessary for top level controllers like Deployment or StatefulSet
 func generateExceptionKinds(resourceKind string) []string {
-	// Adds the subresources to the exception list for each Kind
-	var exceptionKinds []string
-	exceptionKinds = append(exceptionKinds, resourceKind)
-	// Append ReplicaSets
-	if resourceKind == "Deployment" {
-		exceptionKinds = append(exceptionKinds, "ReplicaSet")
-		// Append Jobs
-	} else if resourceKind == "CronJob" {
-		exceptionKinds = append(exceptionKinds, "Job")
+	exceptionKinds := []string{resourceKind}
+
+	switch resourceKind {
+	case KindDeployment:
+		exceptionKinds = append(exceptionKinds, KindReplicaSet)
+	case KindCronJob:
+		exceptionKinds = append(exceptionKinds, KindJob)
 	}
-	// Always append Pods except if they are the initial resource Kind
-	if resourceKind != "Pod" {
-		exceptionKinds = append(exceptionKinds, "Pod")
+
+	if resourceKind != KindPod {
+		exceptionKinds = append(exceptionKinds, KindPod)
 	}
 
 	return exceptionKinds
