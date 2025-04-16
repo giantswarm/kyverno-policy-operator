@@ -40,3 +40,17 @@ helm.sh/chart: {{ include "chart" . | quote }}
 {{- define "kyverno-policy-operator.CRDInstallSelector" -}}
 {{- printf "%s" "crd-install-hook" -}}
 {{- end -}}
+
+{{- define "kyverno-policy-operator.crdAdoption" -}}
+{{- printf "%s-%s" ( include "resource.default.name" . ) "crd-adoption-hook" | replace "+" "_" | trimSuffix "-" -}}
+{{- end -}}
+
+{{- define "kyverno-policy-operator.crdAdoptionAnnotations" -}}
+"helm.sh/hook": "post-upgrade"
+"helm.sh/hook-delete-policy": "before-hook-creation,hook-succeeded"
+{{- end -}}
+
+{{/* Create a label which can be used to select any orphaned crd-adoption hook resources */}}
+{{- define "kyverno-policy-operator.crdAdoptionSelector" -}}
+{{- printf "%s" "crd-adoption-hook" -}}
+{{- end -}}
