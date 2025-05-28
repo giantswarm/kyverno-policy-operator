@@ -6,7 +6,7 @@ toolchain go1.23.5
 
 require (
 	github.com/giantswarm/policy-api v0.0.5
-	github.com/go-logr/logr v1.4.2
+	github.com/go-logr/logr v1.4.3
 	github.com/google/uuid v1.6.0
 	github.com/kyverno/kyverno v1.12.5
 	github.com/onsi/ginkgo/v2 v2.22.2
