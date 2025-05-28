@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	kyvernov2beta1 "github.com/kyverno/kyverno/api/kyverno/v2beta1"
+	kyvernov2 "github.com/kyverno/kyverno/api/kyverno/v2"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
@@ -84,7 +84,7 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 							r.ExceptionList[clusterPolicy.Name] = clusterPolicy
 
 							// Template Kyverno Polex
-							policyException := kyvernov2beta1.PolicyException{}
+							policyException := kyvernov2.PolicyException{}
 
 							// Set namespace
 							policyException.Namespace = "giantswarm"
