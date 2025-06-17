@@ -1,8 +1,8 @@
 module github.com/giantswarm/kyverno-policy-operator
 
-go 1.23.0
+go 1.24
 
-toolchain go1.23.5
+toolchain go1.24.3
 
 require (
 	github.com/giantswarm/policy-api v0.0.5
@@ -126,7 +126,7 @@ require (
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/certificate-transparency-go v1.1.8 // indirect
 	github.com/google/gnostic-models v0.6.9-0.20230804172637-c7be7c783f49 // indirect
-	github.com/google/go-cmp v0.6.0 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-containerregistry v0.19.1 // indirect
 	github.com/google/go-github/v55 v55.0.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
@@ -282,3 +282,5 @@ replace (
 )
 
 replace github.com/golang-jwt/jwt/v4 v4.5.0 => github.com/golang-jwt/jwt/v4 v4.5.1
+
+replace github.com/go-jose/go-jose/v4 v4.0.1 => github.com/go-jose/go-jose/v4 v4.1.0
