@@ -1,0 +1,26 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: {{ include "kyverno-policy-operator.crdAdoption" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  annotations:
+    # create hook dependencies in the right order
+    "helm.sh/hook-weight": "-7"
+    {{- include "kyverno-policy-operator.crdAdoptionAnnotations" . | nindent 4 }}
+  labels:
+    app.kubernetes.io/component: {{ include "kyverno-policy-operator.crdAdoption" . | quote }}
+    {{- include "labels.selector" . | nindent 4 }}
+    role: {{ include "kyverno-policy-operator.crdAdoptionSelector" . | quote }}
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/component: {{ include "kyverno-policy-operator.crdAdoption" . | quote }}
+      {{- include "labels.selector" . | nindent 6 }}
+  egress:
+    - toEntities:
+        - kube-apiserver
+      toPorts:
+        - ports:
+            - port: "443"
+        - ports:
+            - port: "6443"
