@@ -51,16 +51,8 @@ var (
 )
 
 func init() {
-	err := kyvernov2.AddToScheme(scheme)
-	if err != nil {
-		setupLog.Error(err, "unable to register kyverno schema")
-	}
-
-	err = kyvernov1.AddToScheme(scheme)
-	if err != nil {
-		setupLog.Error(err, "unable to register kyverno schema")
-	}
-
+	utilruntime.Must(kyvernov2.AddToScheme(scheme))
+	utilruntime.Must(kyvernov1.AddToScheme(scheme))
 	utilruntime.Must(policyAPI.AddToScheme(scheme))
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme

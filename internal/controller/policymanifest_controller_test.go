@@ -82,7 +82,7 @@ var _ = Describe("PolicyManifest Controller", func() {
 								{ResourceDescription: kyvernov1.ResourceDescription{Kinds: []string{"Deployment"}}},
 							},
 						},
-						Validation: kyvernov1.Validation{
+						Validation: &kyvernov1.Validation{
 							Message: "Privileged mode is disallowed. The fields spec.containers[*].securityContext.privileged and spec.initContainers[*].securityContext.privileged must be unset or set to `false`.",
 							RawPattern: &apiextv1.JSON{
 								Raw: []byte(`{
