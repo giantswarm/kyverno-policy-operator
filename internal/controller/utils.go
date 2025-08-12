@@ -5,7 +5,7 @@ import (
 
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
-	kyvernov2alpha1 "github.com/kyverno/kyverno/api/kyverno/v2alpha1"
+	kyvernov2 "github.com/kyverno/kyverno/api/kyverno/v2"
 )
 
 var DefaultRequeueDuration = (time.Minute * 5)
@@ -74,10 +74,10 @@ func addNameWildcard(name string) string {
 }
 
 // translatePoliciesToExceptions takes a Kyverno ClusterPolicy array and transforms it into a Kyverno Exception array
-func translatePoliciesToExceptions(policies []kyvernov1.ClusterPolicy) []kyvernov2alpha1.Exception {
-	var exceptionArray []kyvernov2alpha1.Exception
+func translatePoliciesToExceptions(policies []kyvernov1.ClusterPolicy) []kyvernov2.Exception {
+	var exceptionArray []kyvernov2.Exception
 	for _, kyvernoPolicy := range policies {
-		kyvernoException := kyvernov2alpha1.Exception{
+		kyvernoException := kyvernov2.Exception{
 			PolicyName: kyvernoPolicy.Name,
 			RuleNames:  generatePolicyRules(kyvernoPolicy),
 		}
@@ -101,7 +101,7 @@ func generatePolicyRules(kyvernoPolicy kyvernov1.ClusterPolicy) []string {
 }
 
 // unorderedEqual takes two Kyverno Exception arrays and checks if they are equal even if they are not ordered the same
-func unorderedEqual(got, want []kyvernov2alpha1.Exception) bool {
+func unorderedEqual(got, want []kyvernov2.Exception) bool {
 	// Check Length size first
 	if len(got) != len(want) {
 		return false

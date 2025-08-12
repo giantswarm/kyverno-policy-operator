@@ -21,7 +21,7 @@ import (
 
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
-	kyvernov2beta1 "github.com/kyverno/kyverno/api/kyverno/v2beta1"
+	kyvernov2 "github.com/kyverno/kyverno/api/kyverno/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -41,7 +41,7 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 		kyvernoClusterPolicy   kyvernov1.ClusterPolicy
 		gsPolicyException      policyAPI.PolicyException
 		r                      *controller.PolicyExceptionReconciler
-		kyvernoPolicyException kyvernov2beta1.PolicyException
+		kyvernoPolicyException kyvernov2.PolicyException
 	)
 
 	BeforeEach(func() {
@@ -89,14 +89,14 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
                 								"securityContext": {
 												  "privileged": "false"
                 								}
-              								}	
+              								}
 										],
             							"initContainers": [
               								{
                 								"securityContext": {
                   								  "privileged": "false"
                 								}
-              								}					
+              								}
             							],
             							"containers": [
               								{

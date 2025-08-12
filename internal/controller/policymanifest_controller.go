@@ -23,7 +23,7 @@ import (
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
 	"github.com/go-logr/logr"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
-	kyvernov2beta1 "github.com/kyverno/kyverno/api/kyverno/v2beta1"
+	kyvernov2 "github.com/kyverno/kyverno/api/kyverno/v2"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -74,7 +74,7 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			ManagedBy: ComponentName,
 		}
 		// Delete Exception
-		if err := r.DeleteAllOf(ctx, &kyvernov2beta1.PolicyException{}, client.InNamespace(r.DestinationNamespace), labelSelector); err != nil {
+		if err := r.DeleteAllOf(ctx, &kyvernov2.PolicyException{}, client.InNamespace(r.DestinationNamespace), labelSelector); err != nil {
 			if errors.IsNotFound(err) {
 				return ctrl.Result{}, nil
 			}
@@ -89,7 +89,7 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return utils.JitterRequeue(DefaultRequeueDuration, r.MaxJitterPercent, r.Log), nil
 	}
 
-	kyvernoPolicyException := kyvernov2beta1.PolicyException{}
+	kyvernoPolicyException := kyvernov2.PolicyException{}
 	// Set kyvernoPolicyException destination namespace.
 	kyvernoPolicyException.Namespace = r.DestinationNamespace
 	// Set kyvernoPolicyException name.

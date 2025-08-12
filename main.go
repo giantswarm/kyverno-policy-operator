@@ -31,7 +31,7 @@ import (
 
 	"github.com/giantswarm/kyverno-policy-operator/internal/controller"
 
-	kyvernov2beta1 "github.com/kyverno/kyverno/api/kyverno/v2beta1"
+	kyvernov2 "github.com/kyverno/kyverno/api/kyverno/v2"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
@@ -51,7 +51,7 @@ var (
 )
 
 func init() {
-	err := kyvernov2beta1.AddToScheme(scheme)
+	err := kyvernov2.AddToScheme(scheme)
 	if err != nil {
 		setupLog.Error(err, "unable to register kyverno schema")
 	}

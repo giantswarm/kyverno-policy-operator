@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
-	kyvernov2beta1 "github.com/kyverno/kyverno/api/kyverno/v2beta1"
+	kyvernov2 "github.com/kyverno/kyverno/api/kyverno/v2"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -102,7 +102,7 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		policies = append(policies, kyvernoPolicy)
 	}
 	// Translate GiantSwarm PolicyException to Kyverno's PolicyException schema
-	policyException := kyvernov2beta1.PolicyException{}
+	policyException := kyvernov2.PolicyException{}
 	// Set namespace
 	policyException.Namespace = namespace
 	// Set name
@@ -184,6 +184,6 @@ func generateExceptionKinds(resourceKind string) []string {
 func (r *PolicyExceptionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&policyAPI.PolicyException{}).
-		Owns(&kyvernov2beta1.PolicyException{}).
+		Owns(&kyvernov2.PolicyException{}).
 		Complete(r)
 }
