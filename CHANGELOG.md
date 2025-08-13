@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Resolve updated code linter findings.
+- Update Kyverno API to v1.14.4.
+- Gate PolicyManifest controller to avoid reconciliation when there is no PolMO running.
 
 ## [0.1.4] - 2025-01-31
 

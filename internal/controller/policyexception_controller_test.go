@@ -21,7 +21,7 @@ import (
 
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
-	kyvernov2beta1 "github.com/kyverno/kyverno/api/kyverno/v2beta1"
+	kyvernov2 "github.com/kyverno/kyverno/api/kyverno/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -41,13 +41,15 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 		kyvernoClusterPolicy   kyvernov1.ClusterPolicy
 		gsPolicyException      policyAPI.PolicyException
 		r                      *controller.PolicyExceptionReconciler
-		kyvernoPolicyException kyvernov2beta1.PolicyException
+		kyvernoPolicyException kyvernov2.PolicyException
+		policyCache            map[string]kyvernov1.ClusterPolicy
 	)
 
 	BeforeEach(func() {
+		// initialize the shared PolicyCache
+		policyCache = make(map[string]kyvernov1.ClusterPolicy)
 
 		// We initialize the Policy Exception Reconciler first.
-
 		r = &controller.PolicyExceptionReconciler{
 			Client:               k8sClient,
 			Scheme:               scheme.Scheme,
@@ -55,13 +57,13 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 			DestinationNamespace: "default",
 			Background:           false,
 			MaxJitterPercent:     maxJitterPercent,
+			PolicyCache:          policyCache,
 		}
 
 		logger := zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true))
 		ctx = log.IntoContext(context.Background(), logger)
 
 		// We then define the Kyverno Cluster Policy and the Giant Swarm Policy Exception.
-
 		kyvernoClusterPolicy = kyvernov1.ClusterPolicy{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "kyverno.io/v1",
@@ -79,7 +81,7 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 								{ResourceDescription: kyvernov1.ResourceDescription{Kinds: []string{"Deployment"}}},
 							},
 						},
-						Validation: kyvernov1.Validation{
+						Validation: &kyvernov1.Validation{
 							Message: "Privileged mode is disallowed. The fields spec.containers[*].securityContext.privileged and spec.initContainers[*].securityContext.privileged must be unset or set to `false`.",
 							RawPattern: &apiextv1.JSON{
 								Raw: []byte(`{
@@ -89,14 +91,14 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
                 								"securityContext": {
 												  "privileged": "false"
                 								}
-              								}	
+              								}
 										],
             							"initContainers": [
               								{
                 								"securityContext": {
                   								  "privileged": "false"
                 								}
-              								}					
+              								}
             							],
             							"containers": [
               								{
@@ -111,6 +113,20 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 						},
 					},
 				},
+			},
+		}
+
+		// Initialize the ClusterPolicy controller so we have cached policies
+		clusterPolicyReconciler := &controller.ClusterPolicyReconciler{
+			Client:           k8sClient,
+			Scheme:           scheme.Scheme,
+			Log:              logger,
+			PolicyCache:      policyCache,
+			MaxJitterPercent: maxJitterPercent,
+		}
+		req := ctrl.Request{
+			NamespacedName: types.NamespacedName{
+				Name: kyvernoClusterPolicy.Name,
 			},
 		}
 
@@ -136,6 +152,10 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 		Expect(k8sClient.Create(ctx, &kyvernoClusterPolicy)).Should(Succeed())
 		Expect(k8sClient.Create(ctx, &gsPolicyException)).Should(Succeed())
 
+		// We initialize the ClusterPolicy controller so we have cached policies
+		_, err := clusterPolicyReconciler.Reconcile(ctx, req)
+		Expect(err).NotTo(HaveOccurred())
+
 	})
 
 	AfterEach(func() {
@@ -155,7 +175,7 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 			// First we test for a successful reconciliation
 			result, err := r.Reconcile(ctx, req)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result.Requeue).To(BeTrue())
+			Expect(result.RequeueAfter).To(BeNumerically(">", 0))
 
 			// Then we test if we can fetch the Kyverno Policy Exception.
 			err = r.Get(ctx, req.NamespacedName, &kyvernoPolicyException)

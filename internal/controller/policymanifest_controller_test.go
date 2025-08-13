@@ -22,7 +22,7 @@ import (
 
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
-	kyvernov2beta1 "github.com/kyverno/kyverno/api/kyverno/v2beta1"
+	kyvernov2 "github.com/kyverno/kyverno/api/kyverno/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -43,7 +43,7 @@ var _ = Describe("PolicyManifest Controller", func() {
 		gsPolicyManifest       policyAPI.PolicyManifest
 		r                      *controller.PolicyManifestReconciler
 		policyCache            map[string]kyvernov1.ClusterPolicy
-		kyvernoPolicyException kyvernov2beta1.PolicyException
+		kyvernoPolicyException kyvernov2.PolicyException
 	)
 
 	BeforeEach(func() {
@@ -82,7 +82,7 @@ var _ = Describe("PolicyManifest Controller", func() {
 								{ResourceDescription: kyvernov1.ResourceDescription{Kinds: []string{"Deployment"}}},
 							},
 						},
-						Validation: kyvernov1.Validation{
+						Validation: &kyvernov1.Validation{
 							Message: "Privileged mode is disallowed. The fields spec.containers[*].securityContext.privileged and spec.initContainers[*].securityContext.privileged must be unset or set to `false`.",
 							RawPattern: &apiextv1.JSON{
 								Raw: []byte(`{

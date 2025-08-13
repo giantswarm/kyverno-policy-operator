@@ -31,7 +31,7 @@ import (
 
 	"github.com/giantswarm/kyverno-policy-operator/internal/controller"
 
-	kyvernov2beta1 "github.com/kyverno/kyverno/api/kyverno/v2beta1"
+	kyvernov2 "github.com/kyverno/kyverno/api/kyverno/v2"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
@@ -51,16 +51,8 @@ var (
 )
 
 func init() {
-	err := kyvernov2beta1.AddToScheme(scheme)
-	if err != nil {
-		setupLog.Error(err, "unable to register kyverno schema")
-	}
-
-	err = kyvernov1.AddToScheme(scheme)
-	if err != nil {
-		setupLog.Error(err, "unable to register kyverno schema")
-	}
-
+	utilruntime.Must(kyvernov2.AddToScheme(scheme))
+	utilruntime.Must(kyvernov1.AddToScheme(scheme))
 	utilruntime.Must(policyAPI.AddToScheme(scheme))
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
@@ -72,6 +64,7 @@ func main() {
 	var probeAddr string
 	var destinationNamespace string
 	var backgroundMode bool
+	var polmanEnabled bool
 	var chartOperatorExceptionKinds []string
 	var maxJitterPercent int
 	policyCache := make(map[string]kyvernov1.ClusterPolicy)
@@ -89,6 +82,7 @@ func main() {
 	flag.BoolVar(&backgroundMode, "background-mode", false,
 		"Enable PolicyException background mode. If true, failing resources have a status of 'skip' in reports, instead of 'fail'. Defaults to false.",
 	)
+	flag.BoolVar(&polmanEnabled, "enable-policy-manifests", false, "Enable PolicyManifests reconciliation.")
 	flag.Func("chart-operator-exception-kinds",
 		"A comma-separated list of kinds to be excluded from custom ClusterPolicies. This lets the chart-operator ServiceAccount to create protected objects.",
 		func(input string) error {
@@ -137,22 +131,26 @@ func main() {
 		Scheme:               mgr.GetScheme(),
 		DestinationNamespace: destinationNamespace,
 		Background:           backgroundMode,
+		PolicyCache:          policyCache,
 		MaxJitterPercent:     maxJitterPercent,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PolicyException")
 		os.Exit(1)
 	}
 
-	if err = (&controller.PolicyManifestReconciler{
-		Client:               mgr.GetClient(),
-		Scheme:               mgr.GetScheme(),
-		DestinationNamespace: destinationNamespace,
-		Background:           backgroundMode,
-		PolicyCache:          policyCache,
-		MaxJitterPercent:     maxJitterPercent,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "PolicyManifest")
-		os.Exit(1)
+	if polmanEnabled {
+		setupLog.Info("PolicyManifests enabled, setting up PolicyManifest controller")
+		if err = (&controller.PolicyManifestReconciler{
+			Client:               mgr.GetClient(),
+			Scheme:               mgr.GetScheme(),
+			DestinationNamespace: destinationNamespace,
+			Background:           backgroundMode,
+			PolicyCache:          policyCache,
+			MaxJitterPercent:     maxJitterPercent,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "PolicyManifest")
+			os.Exit(1)
+		}
 	}
 
 	if err = (&controller.ClusterPolicyReconciler{
