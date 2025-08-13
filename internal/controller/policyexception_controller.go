@@ -26,7 +26,6 @@ import (
 
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 	kyvernov2 "github.com/kyverno/kyverno/api/kyverno/v2"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/go-logr/logr"
@@ -54,6 +53,7 @@ type PolicyExceptionReconciler struct {
 	DestinationNamespace string
 	Background           bool
 	MaxJitterPercent     int
+	PolicyCache          map[string]kyvernov1.ClusterPolicy
 }
 
 //+kubebuilder:rbac:groups=policy.giantswarm.io,resources=policyexceptions,verbs=get;list;watch;create;update;patch;delete
@@ -93,12 +93,14 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	var policies []kyvernov1.ClusterPolicy
 	for _, policy := range gsPolicyException.Spec.Policies {
 		var kyvernoPolicy kyvernov1.ClusterPolicy
-		if err := r.Get(ctx, types.NamespacedName{Namespace: "", Name: policy}, &kyvernoPolicy); err != nil {
+		// Check if the policy is already in the cache
+		if cachedPolicy, exists := r.PolicyCache[policy]; exists {
+			kyvernoPolicy = cachedPolicy
+		} else {
 			// Error fetching the report
-			log.Log.Error(err, "unable to fetch Kyverno Policy")
-			return ctrl.Result{}, client.IgnoreNotFound(err)
+			log.Log.Error(fmt.Errorf("policy %s not found in cache", policy), "unable to fetch Kyverno Policy from cache")
+			return utils.JitterRequeue(DefaultRequeueDuration, r.MaxJitterPercent, r.Log), nil
 		}
-
 		policies = append(policies, kyvernoPolicy)
 	}
 	// Translate GiantSwarm PolicyException to Kyverno's PolicyException schema
