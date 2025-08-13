@@ -287,3 +287,5 @@ replace (
 replace github.com/golang-jwt/jwt/v4 v4.5.0 => github.com/golang-jwt/jwt/v4 v4.5.1
 
 replace github.com/go-jose/go-jose/v4 v4.0.1 => github.com/go-jose/go-jose/v4 v4.1.0
+
+replace github.com/go-jose/go-jose/v3 v3.0.3 => github.com/go-jose/go-jose/v3 v3.0.4
