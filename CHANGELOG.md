@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Change CRD labels for easy adoption in the future.
+- Remove PolicyManifest CRD.
+
 ## [0.1.5] - 2025-08-19
 
 ### Changed
