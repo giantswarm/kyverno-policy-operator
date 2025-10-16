@@ -1,1 +1,1 @@
-CVE-2021-43668 until=2025-09-11 # github.com/syndtr/goleveldb@v1.0.1-0.20220721030215-126854af5e6d
+CVE-2021-43668 until=2025-10-11 # github.com/syndtr/goleveldb@v1.0.1-0.20220721030215-126854af5e6d
