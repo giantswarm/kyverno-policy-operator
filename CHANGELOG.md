@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Updated RBAC rules to include `policyexceptions/finalizers` for managing `.metadata.ownerReferences.blockOwnerDeletion`.
+
 ## [0.1.5] - 2025-08-19
 
 ### Changed

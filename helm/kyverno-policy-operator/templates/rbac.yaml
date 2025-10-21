@@ -29,6 +29,7 @@ rules:
       - policy.giantswarm.io
     resources:
       - policyexceptions
+      - policyexceptions/finalizers
     verbs:
       - get
       - list
