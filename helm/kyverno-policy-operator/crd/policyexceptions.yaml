@@ -5,7 +5,7 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.14.0
     helm.sh/resource-policy: keep
-    meta.helm.sh/release-name: policy-meta-operator
+    meta.helm.sh/release-name: policy-api-crds
     meta.helm.sh/release-namespace: policy-system
   labels:
     app.kubernetes.io/managed-by: "Helm"
