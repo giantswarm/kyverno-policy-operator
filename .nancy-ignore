@@ -1,5 +1,5 @@
 CVE-2025-47913 until=2025-12-20 # golang.org/x/crypto@v0.41.0
-CVE-2021-43668 until=2025-12-17 # github.com/syndtr/goleveldb@v1.0.1-0.20220721030215-126854af5e6d
+CVE-2021-43668 until=2026-01-16 # github.com/syndtr/goleveldb@v1.0.1-0.20220721030215-126854af5e6d
 CVE-2025-47914 until=2025-12-20 # golang.org/x/crypto@v0.41.0
 CVE-2025-58181 until=2025-12-20 # golang.org/x/crypto@v0.41.0
 CVE-2025-66564 until=2026-01-07 # github.com/sigstore/timestamp-authority@v1.2.4
