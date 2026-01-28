@@ -12,3 +12,5 @@ CVE-2026-23831 until=2026-02-25 # github.com/sigstore/rekor@v1.3.9
 CVE-2026-24117 until=2026-02-25 # github.com/sigstore/rekor@v1.3.9
 CVE-2026-24137 until=2026-02-25 # github.com/sigstore/sigstore@v1.9.1
 CVE-2026-24686 until=2026-02-26 # github.com/theupdateframework/go-tuf/v2@v2.0.2
+CVE-2026-22039 until=2026-02-27 # github.com/kyverno/kyverno@v1.14.4
+CVE-2026-23881 until=2026-02-27 # github.com/kyverno/kyverno@v1.14.4
