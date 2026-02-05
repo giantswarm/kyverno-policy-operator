@@ -7,6 +7,7 @@ metadata:
     # create hook dependencies in the right order
     "helm.sh/hook-weight": "-1"
     {{- include "kyverno-policy-operator.crdAdoptionAnnotations" . | nindent 4 }}
+    ignore-check.kube-linter.io/job-ttl-seconds-after-finished: "Helm hook cleanup handles Job deletion."
   labels:
     app.kubernetes.io/component: {{ include "kyverno-policy-operator.crdAdoption" . | quote }}
     {{- include "labels.selector" . | nindent 4 }}
