@@ -6,4 +6,6 @@ home: https://github.com/giantswarm/kyverno-policy-operator
 version: 0.1.6
 icon: https://s.giantswarm.io/app-icons/giantswarm/1/light.svg
 annotations:
-  application.giantswarm.io/team: shield
+  io.giantswarm.application.audience: all
+  io.giantswarm.application.managed: "true"
+  io.giantswarm.application.team: shield
