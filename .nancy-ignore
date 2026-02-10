@@ -15,3 +15,5 @@ CVE-2026-24686 until=2026-02-26 # github.com/theupdateframework/go-tuf/v2@v2.0.2
 CVE-2026-22039 until=2026-02-27 # github.com/kyverno/kyverno@v1.14.4
 CVE-2026-23881 until=2026-02-27 # github.com/kyverno/kyverno@v1.14.4
 CVE-2026-24051 until=2026-03-06 # go.opentelemetry.io/otel/sdk@v1.35.0
+CVE-2025-47911 until=2026-03-12 # golang.org/x/net@v0.43.0
+CVE-2025-58190 until=2026-03-12 # golang.org/x/net@v0.43.0
