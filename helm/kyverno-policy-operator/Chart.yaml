@@ -3,7 +3,7 @@ appVersion: 0.0.1
 name: kyverno-policy-operator
 description: A Helm chart for kyverno-policy-operator, which creates PolicyExceptions based on PolicyExceptionsDraft resources.
 home: https://github.com/giantswarm/kyverno-policy-operator
-version: 0.1.6
+version: 0.2.0
 icon: https://s.giantswarm.io/app-icons/giantswarm/1/light.svg
 annotations:
   io.giantswarm.application.audience: all
