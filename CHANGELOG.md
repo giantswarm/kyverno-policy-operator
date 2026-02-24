@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-02-24
+
 ### Changed
 
 - Add `--overwrite` flag to `adopt-crds` post-upgrade job.
@@ -116,7 +118,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First release of the Kyverno Policy Operator App.
 
-[Unreleased]: https://github.com/giantswarm/kyverno-policy-operator/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/giantswarm/kyverno-policy-operator/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/giantswarm/kyverno-policy-operator/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/giantswarm/kyverno-policy-operator/compare/v0.1.6...v0.2.0
 [0.1.6]: https://github.com/giantswarm/kyverno-policy-operator/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/giantswarm/kyverno-policy-operator/compare/v0.1.4...v0.1.5
