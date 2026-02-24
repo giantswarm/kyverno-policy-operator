@@ -40,9 +40,9 @@ spec:
 
           # piping stderr to stdout means kubectl's errors are surfaced
           # in the pod's logs.
-          kubectl label crd policyexceptions.policy.giantswarm.io "app.kubernetes.io/managed-by=Helm"
-          kubectl annotate crd policyexceptions.policy.giantswarm.io "meta.helm.sh/release-name=policy-meta-operator"
-          kubectl annotate crd policyexceptions.policy.giantswarm.io "meta.helm.sh/release-namespace=policy-system"
+          kubectl label crd policyexceptions.policy.giantswarm.io "app.kubernetes.io/managed-by=Helm" --overwrite
+          kubectl annotate crd policyexceptions.policy.giantswarm.io "meta.helm.sh/release-name=policy-api-crds" --overwrite
+          kubectl annotate crd policyexceptions.policy.giantswarm.io "meta.helm.sh/release-namespace=policy-system" --overwrite
         securityContext:
           seccompProfile:
             type: RuntimeDefault

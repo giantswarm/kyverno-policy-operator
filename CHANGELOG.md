@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Add `--overwrite` flag to `adopt-crds` post-upgrade job.
+- Change `adopt-crds` adopt annotations to `policy-api-crds`.
+
 ## [0.2.0] - 2026-02-23
 
 ### Added
