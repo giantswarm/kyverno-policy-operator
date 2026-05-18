@@ -6,7 +6,7 @@ require (
 	github.com/giantswarm/policy-api v0.0.6
 	github.com/go-logr/logr v1.4.3
 	github.com/google/uuid v1.6.0
-	github.com/kyverno/kyverno v1.18.0
+	github.com/kyverno/kyverno v1.18.1
 	github.com/onsi/ginkgo/v2 v2.29.0
 	github.com/onsi/gomega v1.41.0
 	k8s.io/api v0.35.4
