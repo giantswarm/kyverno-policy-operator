@@ -1,0 +1,17 @@
+# app-test-suite config. Consumed by the generated `run-tests-with-ats`
+# CircleCI job (execute-chart-tests). Without `smoke-tests-cluster-type` ATS
+# errors out before testing ("Unknown cluster type 'None'").
+smoke-tests-cluster-type: kind
+upgrade-tests-cluster-type: kind
+
+# Test execution is skipped for now: the chart renders exactly one kagent
+# Agent CR, so `helm install` on a bare kind cluster fails on the missing
+# CRD, and the bundled ATS (0.15.0) has no way to bootstrap extra CRDs before
+# the deploy. The smoke test under tests/ats is ready and written against the
+# next ATS release's contract (`cluster-crds` option + ATS_RELEASE_* env
+# vars, both in ATS's unreleased changelog). Same approach as
+# giantswarm/kagent-app.
+# @TODO: once dats.sh ships ATS > 0.15.0, remove `smoke` from skip-steps and
+# add:
+#   cluster-crds: https://raw.githubusercontent.com/giantswarm/kagent-app/v0.1.25/helm/kagent/crds/kagent.dev/kagent.dev_agents.yaml
+skip-steps: [smoke,functional,upgrade]
