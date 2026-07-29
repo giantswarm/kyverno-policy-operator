@@ -1,0 +1,15 @@
+apiVersion: policy.giantswarm.io/v1alpha1
+kind: PolicyException
+metadata:
+  name: my-custom-operator
+  namespace: policy-exceptions
+spec:
+  policies:
+  - disallow-privilege-escalation
+  - require-run-as-nonroot
+  targets:
+  - kind: Deployment
+    names:
+    - my-custom-operator
+    namespaces:
+    - default
