@@ -483,8 +483,8 @@ github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpO
 github.com/ianlancetaylor/demangle v0.0.0-20200824232613-28f6c0f3b639/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/in-toto/attestation v1.1.2 h1:MBFn6lsMq6dptQZJBhalXTcWMb/aJy3V+GX3VYj/V1E=
 github.com/in-toto/attestation v1.1.2/go.mod h1:gYFddHMZj3DiQ0b62ltNi1Vj5rC879bTmBbrv9CRHpM=
-github.com/in-toto/in-toto-golang v0.10.0 h1:+s2eZQSK3WmWfYV85qXVSBfqgawi/5L02MaqA4o/tpM=
-github.com/in-toto/in-toto-golang v0.10.0/go.mod h1:wjT4RiyFlLWCmLUJjwB8oZcjaq7HA390aMJcD3xXgmg=
+github.com/in-toto/in-toto-golang v0.11.0 h1:nfidMYBFx+E0lnmX5KUnN2Pdm8zdNKal1ayjJuzzRoA=
+github.com/in-toto/in-toto-golang v0.11.0/go.mod h1:u3PjTnwFKjp5a1YCcw8SJg0G+tMeKfVoWsWeFMDCMtw=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/jackc/pgpassfile v1.0.0 h1:/6Hmqy13Ss2zCq62VdNG8tM1wchn8zjSGOBJ6icpsIM=
@@ -527,12 +527,12 @@ github.com/kyverno/go-jmespath v0.4.1-0.20231124160150-95e59c162877 h1:XOLJNGX/q
 github.com/kyverno/go-jmespath v0.4.1-0.20231124160150-95e59c162877/go.mod h1:yzDHaKovQy16rjN4kFnjF+IdNoN4p1ndw+va6+B8zUU=
 github.com/kyverno/go-jmespath/internal/testify v1.5.2-0.20230630133209-945021c749d9 h1:lL311dF3a2aeNibJj8v+uhFU3XkvRHZmCtAdSPOrQYY=
 github.com/kyverno/go-jmespath/internal/testify v1.5.2-0.20230630133209-945021c749d9/go.mod h1:XRxUGHIiCy1WYma1CdfdO1WOhIe8dLPTENaZr5D1ex4=
-github.com/kyverno/kyverno v1.18.1 h1:ab4V18n3qEt9SfomMV1UsXU69MGjWB6mbxFRpjpWE4I=
-github.com/kyverno/kyverno v1.18.1/go.mod h1:YbOLh7D4+AOBskP0REyuQd2fxkH/XA/w3WMnSQwV/XQ=
+github.com/kyverno/kyverno v1.18.2 h1:w/p1ysSEzOuMO4DaYmpiJ5YioL4OCkgmFFC5cJqiJ68=
+github.com/kyverno/kyverno v1.18.2/go.mod h1:vDWacNyDZbwdRKd4oEv5LTHDnUg4U/WKTfkqufKxTtc=
 github.com/kyverno/kyverno-json v0.0.4-0.20240730143747-aade3d42fc0e h1:gh9iMuJS8yloxo3JIzvgLWZWwy5iRjEkA8/U7rK3iu8=
 github.com/kyverno/kyverno-json v0.0.4-0.20240730143747-aade3d42fc0e/go.mod h1:3LgZogzltja+Sx0o5CIa7d7+991v8sWXHskU0fWSOsQ=
-github.com/kyverno/sdk v0.0.0-20260403020150-29a100fa834c h1:xte6C9WfSFZAmpTLv/nQcZpn4O4SXEZ3ChsiAlqeaJk=
-github.com/kyverno/sdk v0.0.0-20260403020150-29a100fa834c/go.mod h1:duWj9TYUzHnKH15v013U33kElDDAnBfQcftK/a3dcHM=
+github.com/kyverno/sdk v0.0.0-20260529121714-3c70db82e2e4 h1:OvfaBZcRpJg3LLpbBWqbx4k+j5ve42BO/1NMIGO6LE4=
+github.com/kyverno/sdk v0.0.0-20260529121714-3c70db82e2e4/go.mod h1:lmMOICE6t6Oks0ufVf3lUCTxcxGbdQqe5J56+EP8Q3Y=
 github.com/lestrrat-go/blackmagic v1.0.4 h1:IwQibdnf8l2KoO+qC3uT4OaTWsW7tuRQXy9TRN9QanA=
 github.com/lestrrat-go/blackmagic v1.0.4/go.mod h1:6AWFyKNNj0zEXQYfTMPfZrAXUWUfTIZ5ECEUEJaijtw=
 github.com/lestrrat-go/dsig v1.0.0 h1:OE09s2r9Z81kxzJYRn07TFM9XA4akrUdoMwr0L8xj38=
