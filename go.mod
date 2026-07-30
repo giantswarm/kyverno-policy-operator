@@ -6,7 +6,7 @@ require (
 	github.com/giantswarm/policy-api v0.0.6
 	github.com/go-logr/logr v1.4.3
 	github.com/google/uuid v1.6.0
-	github.com/kyverno/kyverno v1.18.1
+	github.com/kyverno/kyverno v1.18.2
 	github.com/onsi/ginkgo/v2 v2.32.0
 	github.com/onsi/gomega v1.42.1
 	k8s.io/api v0.35.4
@@ -153,7 +153,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.8 // indirect
 	github.com/in-toto/attestation v1.1.2 // indirect
-	github.com/in-toto/in-toto-golang v0.10.0 // indirect
+	github.com/in-toto/in-toto-golang v0.11.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jedisct1/go-minisign v0.0.0-20230811132847-661be99b8267 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
@@ -162,7 +162,7 @@ require (
 	github.com/kyverno/api v0.0.1-alpha.2.0.20260129144402-7b64bcf2b1f7 // indirect
 	github.com/kyverno/go-jmespath v0.4.1-0.20231124160150-95e59c162877 // indirect
 	github.com/kyverno/kyverno-json v0.0.4-0.20240730143747-aade3d42fc0e // indirect
-	github.com/kyverno/sdk v0.0.0-20260403020150-29a100fa834c // indirect
+	github.com/kyverno/sdk v0.0.0-20260529121714-3c70db82e2e4 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.4 // indirect
 	github.com/lestrrat-go/dsig v1.0.0 // indirect
 	github.com/lestrrat-go/dsig-secp256k1 v1.0.0 // indirect
@@ -213,7 +213,7 @@ require (
 	github.com/sigstore/fulcio v1.8.5 // indirect
 	github.com/sigstore/k8s-manifest-sigstore v0.5.5-0.20251214123302-4152ec03ed3d // indirect
 	github.com/sigstore/protobuf-specs v0.5.1 // indirect
-	github.com/sigstore/rekor v1.5.1 // indirect
+	github.com/sigstore/rekor v1.5.2 // indirect
 	github.com/sigstore/rekor-tiles/v2 v2.2.1 // indirect
 	github.com/sigstore/sigstore v1.10.6 // indirect
 	github.com/sigstore/sigstore-go v1.1.4 // indirect
