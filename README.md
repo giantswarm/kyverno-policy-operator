@@ -130,4 +130,4 @@ This app has been tested to work with the following workload cluster release ver
 
 ## Limitations
 
-This App needs Kyverno App [v0.15+](https://github.com/giantswarm/kyverno-app) to be installed in the cluster. 
+This App needs Kyverno App [v0.15+](https://github.com/giantswarm/kyverno-app) to be installed in the cluster.
