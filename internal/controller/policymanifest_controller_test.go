@@ -187,7 +187,7 @@ var _ = Describe("PolicyManifest Controller", func() {
 			// Test for a successful reconciliation
 			result, err := r.Reconcile(ctx, req)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result.Requeue).To(BeTrue())
+			Expect(result.RequeueAfter).To(BeNumerically(">", 0))
 
 			// Fetch the Kyverno Policy Exception
 			req = ctrl.Request{
