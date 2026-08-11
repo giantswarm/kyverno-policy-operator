@@ -91,11 +91,11 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	// Add Kyverno scheme
-	err = kyvernov1.AddToScheme(scheme.Scheme)
+	err = kyvernov1.Install(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	// Add Kyverno beta scheme
-	err = kyvernov2.AddToScheme(scheme.Scheme)
+	err = kyvernov2.Install(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme

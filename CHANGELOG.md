@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix failing `pre-commit` CI check on `main` by replacing the deprecated Kyverno `AddToScheme` scheme registrations with `Install`, and asserting on `Result.RequeueAfter` instead of the deprecated `Result.Requeue` in controller tests.
+
+### Changed
+
+- Raise the `golangci-lint` pre-commit hook timeout from 300s to 600s. This repo's lint run costs ~320s on GitHub-hosted runners, so the hook exited 4 with `Timeout exceeded` while reporting 0 issues.
+
+### Added
+
+- Add `.golangci.yml` so `goconst` does not flag repeated fixture strings in table-driven tests.
+
 ## [0.2.3] - 2026-07-30
 
 ### Fixed
