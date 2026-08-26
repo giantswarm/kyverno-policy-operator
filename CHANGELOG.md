@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Raise the `golangci-lint` pre-commit hook timeout from 300s to 600s. This repo's lint run costs ~320s on GitHub-hosted runners, so the hook exited 4 with `Timeout exceeded` while reporting 0 issues.
+- Regenerate values.schema.json for the strict schema configuration.
 
 ### Added
 
