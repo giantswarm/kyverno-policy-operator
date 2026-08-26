@@ -109,7 +109,7 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if kyvernoPolicy, ok = r.PolicyCache[polman.Name]; !ok {
 		log.Log.Error(fmt.Errorf("policy %s not found in cache", polman.Name), "unable to fetch Kyverno Policy from cache")
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{RequeueAfter: PolicyCacheMissRequeueDuration}, nil
 	}
 
 	policies := []kyvernov1.ClusterPolicy{kyvernoPolicy}

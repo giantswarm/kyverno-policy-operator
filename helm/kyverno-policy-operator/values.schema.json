@@ -1,23 +1,54 @@
 {
-    "$schema": "http://json-schema.org/schema#",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
+    "additionalProperties": false,
     "properties": {
+        "baseDomain": {
+            "type": "string"
+        },
+        "bootstrapMode": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "chartOperator": {
+            "type": "object",
+            "additionalProperties": true
+        },
         "ciliumNetworkPolicy": {
             "type": "object",
+            "additionalProperties": true,
             "properties": {
                 "enabled": {
                     "type": "boolean"
                 }
             }
         },
+        "cluster": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "clusterCA": {
+            "type": "string"
+        },
+        "clusterCIDR": {
+            "type": "string"
+        },
+        "clusterDNSIP": {
+            "type": "string"
+        },
+        "clusterID": {
+            "type": "string"
+        },
         "containerSecurityContext": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "allowPrivilegeEscalation": {
                     "type": "boolean"
                 },
                 "capabilities": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "drop": {
                             "type": "array",
@@ -38,6 +69,7 @@
                 },
                 "seccompProfile": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "type": {
                             "type": "string"
@@ -48,9 +80,11 @@
         },
         "crds": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "image": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "tag": {
                             "type": "string"
@@ -62,9 +96,11 @@
                 },
                 "resources": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "limits": {
                             "type": "object",
+                            "additionalProperties": false,
                             "properties": {
                                 "cpu": {
                                     "type": "string"
@@ -76,6 +112,7 @@
                         },
                         "requests": {
                             "type": "object",
+                            "additionalProperties": false,
                             "properties": {
                                 "cpu": {
                                     "type": "string"
@@ -89,11 +126,16 @@
                 }
             }
         },
+        "gcpProject": {
+            "type": "string"
+        },
         "global": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "image": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "registry": {
                             "type": "string"
@@ -102,6 +144,7 @@
                 },
                 "podSecurityStandards": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "enforced": {
                             "type": "boolean"
@@ -112,6 +155,7 @@
         },
         "image": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "name": {
                     "type": "string"
@@ -124,17 +168,49 @@
                 }
             }
         },
+        "monitoring": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "podLogs": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "annotations": {
+                            "type": "object",
+                            "additionalProperties": false
+                        },
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "labels": {
+                            "type": "object",
+                            "additionalProperties": false
+                        },
+                        "relabelings": {
+                            "type": "array"
+                        },
+                        "tenant": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "name": {
             "type": "string"
         },
         "nodeSelector": {
-            "type": "object"
+            "type": "object",
+            "additionalProperties": false
         },
         "podLabels": {
-            "type": "object"
+            "type": "object",
+            "additionalProperties": false
         },
         "podSecurityContext": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "readOnlyRootFilesystem": {
                     "type": "boolean"
@@ -150,6 +226,7 @@
                 },
                 "seccompProfile": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "type": {
                             "type": "string"
@@ -160,6 +237,7 @@
         },
         "policyOperator": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "chartOperatorExceptionKinds": {
                     "type": "array",
@@ -175,11 +253,16 @@
                 }
             }
         },
+        "provider": {
+            "type": "string"
+        },
         "resources": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "limits": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "cpu": {
                             "type": "string"
@@ -191,6 +274,7 @@
                 },
                 "requests": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "cpu": {
                             "type": "string"
@@ -205,39 +289,11 @@
         "serviceType": {
             "type": "string"
         },
+        "subscriptionID": {
+            "type": "string"
+        },
         "tolerations": {
             "type": "array"
-        },
-        "monitoring": {
-            "type": "object",
-            "properties": {
-                "podLogs": {
-                    "type": "object",
-                    "properties": {
-                        "enabled": {
-                            "type": "boolean",
-                            "description": "Enable log collection for monitoring"
-                        },
-                        "annotations": {
-                            "type": "object",
-                            "description": "Optional additional annotations"
-                        },
-                        "labels": {
-                            "type": "object",
-                            "description": "Optional additional labels"
-                        },
-                        "relabelings": {
-                            "type": "array",
-                            "description": "List of relabeling rules for logs"
-                        },
-                        "tenant": {
-                            "type": "string",
-                            "description": "Tenant to use for monitoring",
-                            "default": "giantswarm"
-                        }
-                    }
-                }
-            }
         }
     }
 }
