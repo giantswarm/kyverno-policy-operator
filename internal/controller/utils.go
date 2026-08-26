@@ -10,6 +10,12 @@ import (
 
 var DefaultRequeueDuration = (time.Minute * 5)
 
+// PolicyCacheMissRequeueDuration is how long to wait before retrying a
+// PolicyManifest whose ClusterPolicy is not in the cache yet. The cache is
+// filled by the ClusterPolicy controller, so a miss is normally a transient
+// start-up race rather than an error.
+var PolicyCacheMissRequeueDuration = (time.Second * 10)
+
 const (
 	ComponentName = "kyverno-policy-operator"
 	ManagedBy     = "app.kubernetes.io/managed-by"

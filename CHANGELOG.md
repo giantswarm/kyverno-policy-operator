@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Replace the deprecated `Result.Requeue` field with `RequeueAfter`. A PolicyManifest whose ClusterPolicy is not cached yet now retries after 10s instead of relying on the deprecated immediate-requeue flag.
 - Fix failing `pre-commit` CI check on `main` by replacing the deprecated Kyverno `AddToScheme` scheme registrations with `Install`, and asserting on `Result.RequeueAfter` instead of the deprecated `Result.Requeue` in controller tests.
 
 ### Changed
