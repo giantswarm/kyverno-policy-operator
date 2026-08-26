@@ -10,8 +10,8 @@ upgrade-tests-cluster-type: kind
 # the deploy. The smoke test under tests/ats is ready and written against the
 # next ATS release's contract (`cluster-crds` option + ATS_RELEASE_* env
 # vars, both in ATS's unreleased changelog). Same approach as
-# giantswarm/kagent-app.
+# giantswarm/kagent.
 # @TODO: once dats.sh ships ATS > 0.15.0, remove `smoke` from skip-steps and
 # add:
-#   cluster-crds: https://raw.githubusercontent.com/giantswarm/kagent-app/v0.1.25/helm/kagent/crds/kagent.dev/kagent.dev_agents.yaml
+#   cluster-crds: https://raw.githubusercontent.com/giantswarm/kagent/v0.1.25/helm/kagent/crds/kagent.dev/kagent.dev_agents.yaml
 skip-steps: [smoke,functional,upgrade]
