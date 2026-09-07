@@ -346,3 +346,7 @@ replace github.com/sigstore/rekor v1.5.1 => github.com/sigstore/rekor v1.5.2
 replace github.com/prometheus/prometheus v0.51.0 => github.com/prometheus/prometheus v0.312.0
 
 replace oras.land/oras-go/v2 v2.6.0 => oras.land/oras-go/v2 v2.6.2
+
+replace github.com/klauspost/compress v1.18.5 => github.com/klauspost/compress v1.20.0
+
+replace github.com/mark3labs/mcp-go v0.43.2 => github.com/mark3labs/mcp-go v1.0.0
