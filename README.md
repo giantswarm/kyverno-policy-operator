@@ -68,6 +68,75 @@ spec:
         - default
 ```
 
+## CEL PolicyExceptions
+
+Kyverno is moving policies from `kyverno.io/v1` ClusterPolicies to CEL-based Policy Types under
+`policies.kyverno.io` (`ValidatingPolicy`, `ImageValidatingPolicy`, ...). To keep exceptions working
+through that migration, the operator writes up to two Kyverno PolicyExceptions per Giant Swarm
+PolicyException, both named after it:
+
+- `kyverno.io/v2`, listing only the policies that still exist as ClusterPolicies. Written only while
+  `--legacy-exceptions` is enabled, and skipped (and deleted, if it exists) for a gspolex already
+  migrated by `exception-recommender`, i.e. one carrying `policy.giantswarm.io/migrated-from`.
+- `policies.kyverno.io/v1`, listing every policy. The policy's kind is resolved from the cluster
+  (`ValidatingPolicy`, `MutatingPolicy` or `ImageValidatingPolicy`); when no matching CEL policy
+  exists yet, it falls back to `ValidatingPolicy` and the name is recorded as unresolved.
+
+`--background-mode` (Helm `policyOperator.exceptionBackgroundMode`) only applies to the
+`kyverno.io/v2` PolicyExceptions; `policies.kyverno.io/v1` PolicyExceptions have no such setting.
+
+Target names are matched more strictly in the `policies.kyverno.io/v1` PolicyException. The target
+kind matches the name exactly, or the `*`/`?` wildcard pattern the user wrote. The kinds its
+controller creates (ReplicaSet, Job, Pod) match the `<name>-` prefix, so a target `app-1` no longer
+covers the pods of `app-10`. The `kyverno.io/v2` PolicyException keeps the old `name*` matching.
+
+Both generated exceptions are labelled `app.kubernetes.io/managed-by: kyverno-policy-operator` and
+`policy.giantswarm.io/source: gspolex|exception-recommender|chart-operator`. The operator only ever
+deletes a PolicyException that carries the `managed-by` label; one created by hand or by another
+tool is left alone.
+
+The generated `policies.kyverno.io/v1` PolicyException can also carry two annotations:
+
+- `policy.giantswarm.io/migrated-from`: copied from the Giant Swarm PolicyException when it was
+  produced by `exception-recommender` from a legacy PolicyException (see above).
+- `policy.giantswarm.io/unresolved-policies`: a comma-separated list of policy names that matched no
+  CEL policy kind yet.
+
+A separate `policies.kyverno.io/v1` PolicyException, `chart-operator-generated-sa-bypass` in the
+`giantswarm` namespace, exempts chart-operator's CREATE and UPDATE of the configured
+`policyOperator.chartOperatorExceptionKinds` from every `ValidatingPolicy` in the cluster, mirroring
+the legacy ClusterPolicy bypass.
+
+### `--legacy-exceptions`
+
+The `--legacy-exceptions` flag (Helm `policyOperator.legacyExceptions`, default `true`) controls
+whether `kyverno.io/v2` PolicyExceptions are written at all. The operator resolves it, together with
+whether the `kyverno.io` ClusterPolicy and PolicyException CRDs are installed, into one of three
+modes:
+
+- `write`: the flag is enabled and both legacy CRDs exist. `kyverno.io/v2` PolicyExceptions are
+  written as before.
+- `cleanup`: both legacy CRDs exist but the flag is disabled. The per-gspolex `kyverno.io/v2`
+  PolicyExceptions the operator manages are deleted, along with the legacy chart-operator bypass.
+- `absent`: either legacy CRD is missing. The operator does not touch `kyverno.io/v2` at all and
+  starts normally without them.
+
+### Metrics
+
+The operator exposes Prometheus metrics on the metrics endpoint (scraped by
+`monitoring.podMonitor` when enabled):
+
+- `kyverno_policy_operator_policyexceptions{api,source}`: generated PolicyExceptions by API
+  (`legacy`/`cel`) and source (`gspolex`/`exception-recommender`/`chart-operator`).
+- `kyverno_policy_operator_dual_policyexceptions{source}`: exceptions that exist as both a
+  `kyverno.io/v2` and a `policies.kyverno.io` PolicyException.
+- `kyverno_policy_operator_legacy_exceptions_enabled`: whether `kyverno.io/v2` PolicyExceptions are
+  being written (`1`) or not (`0`).
+- `kyverno_policy_operator_unresolved_policy_refs{policy}`: generated CEL exceptions referencing a
+  policy name that currently matches no CEL policy.
+- `kyverno_policy_operator_generation_errors_total{api,reason}`: errors writing or deleting generated
+  PolicyExceptions.
+
 ## Installing
 
 There are several ways to install this app onto a workload cluster.

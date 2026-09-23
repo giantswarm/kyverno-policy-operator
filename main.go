@@ -87,7 +87,7 @@ func main() {
 		Development: false,
 	}
 	flag.BoolVar(&backgroundMode, "background-mode", false,
-		"Enable PolicyException background mode. If true, failing resources have a status of 'skip' in reports, instead of 'fail'. Defaults to false.",
+		"Enable background mode on the generated kyverno.io/v2 PolicyExceptions. If true, failing resources have a status of 'skip' in reports, instead of 'fail'. Has no effect on policies.kyverno.io PolicyExceptions. Defaults to false.",
 	)
 	flag.BoolVar(&polmanEnabled, "enable-policy-manifests", false, "Enable PolicyManifests reconciliation.")
 	flag.Func("chart-operator-exception-kinds",
