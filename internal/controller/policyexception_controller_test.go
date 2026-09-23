@@ -25,6 +25,7 @@ import (
 	kyvernov2 "github.com/kyverno/kyverno/api/kyverno/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -222,6 +223,83 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 			Expect(err).NotTo(HaveOccurred())
 			err = k8sClient.Get(ctx, req.NamespacedName, &kyvernov2.PolicyException{})
 			Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		})
+	})
+
+	newVpol := func() *policiesv1.ValidatingPolicy {
+		return &policiesv1.ValidatingPolicy{
+			ObjectMeta: metav1.ObjectMeta{Name: "disallow-privileged-containers"},
+			Spec: policiesv1.ValidatingPolicySpec{
+				MatchConstraints: &admissionregistrationv1.MatchResources{
+					ResourceRules: []admissionregistrationv1.NamedRuleWithOperations{{
+						RuleWithOperations: admissionregistrationv1.RuleWithOperations{
+							Operations: []admissionregistrationv1.OperationType{admissionregistrationv1.Create},
+							Rule:       admissionregistrationv1.Rule{APIGroups: []string{""}, APIVersions: []string{"v1"}, Resources: []string{"pods"}},
+						},
+					}},
+				},
+				Validations: []admissionregistrationv1.Validation{{Expression: "true"}},
+			},
+		}
+	}
+
+	Context("CEL exceptions", func() {
+		var celException policiesv1.PolicyException
+
+		It("references the ValidatingPolicy and matches the targets", func() {
+			vpol := newVpol()
+			Expect(k8sClient.Create(ctx, vpol)).To(Succeed())
+			DeferCleanup(func() { _ = k8sClient.Delete(ctx, vpol) })
+
+			_, err := r.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(k8sClient.Get(ctx, req.NamespacedName, &celException)).To(Succeed())
+			Expect(celException.Spec.PolicyRefs).To(ConsistOf(policiesv1.PolicyRef{Name: "disallow-privileged-containers", Kind: "ValidatingPolicy"}))
+			Expect(celException.Spec.MatchConditions).To(HaveLen(1))
+			Expect(celException.Spec.MatchConditions[0].Name).To(Equal("gspolex-targets"))
+			Expect(celException.Labels).To(HaveKeyWithValue("app.kubernetes.io/managed-by", "kyverno-policy-operator"))
+			Expect(celException.Labels).To(HaveKeyWithValue("policy.giantswarm.io/source", "gspolex"))
+			Expect(celException.Annotations).NotTo(HaveKey("policy.giantswarm.io/unresolved-policies"))
+			Expect(celException.OwnerReferences).To(HaveLen(1))
+			Expect(celException.OwnerReferences[0].Name).To(Equal(gsPolicyException.Name))
+		})
+
+		It("writes both exceptions while the policy exists in both forms", func() {
+			vpol := newVpol()
+			Expect(k8sClient.Create(ctx, vpol)).To(Succeed())
+			DeferCleanup(func() { _ = k8sClient.Delete(ctx, vpol) })
+
+			_, err := r.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(k8sClient.Get(ctx, req.NamespacedName, &kyvernov2.PolicyException{})).To(Succeed())
+			Expect(k8sClient.Get(ctx, req.NamespacedName, &celException)).To(Succeed())
+		})
+
+		It("falls back to ValidatingPolicy and records unresolved names", func() {
+			_, err := r.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(k8sClient.Get(ctx, req.NamespacedName, &celException)).To(Succeed())
+			Expect(celException.Spec.PolicyRefs).To(ConsistOf(policiesv1.PolicyRef{Name: "disallow-privileged-containers", Kind: "ValidatingPolicy"}))
+			Expect(celException.Annotations).To(HaveKeyWithValue("policy.giantswarm.io/unresolved-policies", "disallow-privileged-containers"))
+		})
+
+		It("marks exceptions migrated by exception-recommender", func() {
+			gsPolicyException.Annotations = map[string]string{"policy.giantswarm.io/migrated-from": "team-a/foo"}
+			Expect(k8sClient.Update(ctx, &gsPolicyException)).To(Succeed())
+			_, err := r.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(k8sClient.Get(ctx, req.NamespacedName, &celException)).To(Succeed())
+			Expect(celException.Labels).To(HaveKeyWithValue("policy.giantswarm.io/source", "exception-recommender"))
+			Expect(celException.Annotations).To(HaveKeyWithValue("policy.giantswarm.io/migrated-from", "team-a/foo"))
+		})
+
+		It("matches nothing when the gspolex has no targets", func() {
+			gsPolicyException.Spec.Targets = []policyAPI.Target{}
+			Expect(k8sClient.Update(ctx, &gsPolicyException)).To(Succeed())
+			_, err := r.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(k8sClient.Get(ctx, req.NamespacedName, &celException)).To(Succeed())
+			Expect(celException.Spec.MatchConditions[0].Expression).To(Equal("false"))
 		})
 	})
 })

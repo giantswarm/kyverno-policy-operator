@@ -18,10 +18,11 @@ package controller
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	policiesv1 "github.com/kyverno/api/api/policies.kyverno.io/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	kyvernov2 "github.com/kyverno/kyverno/api/kyverno/v2"
 
@@ -56,9 +57,12 @@ type PolicyExceptionReconciler struct {
 //+kubebuilder:rbac:groups=policy.giantswarm.io,resources=policyexceptions,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=policy.giantswarm.io,resources=policyexceptions/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=policy.giantswarm.io,resources=policyexceptions/finalizers,verbs=update
+//+kubebuilder:rbac:groups=policies.kyverno.io,resources=policyexceptions,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=policies.kyverno.io,resources=validatingpolicies;mutatingpolicies;imagevalidatingpolicies,verbs=get;list;watch
+//+kubebuilder:rbac:groups=kyverno.io,resources=policyexceptions,verbs=get;list;watch;create;update;patch;delete
 
 func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	logger := log.FromContext(ctx).WithValues("gspolex", req.NamespacedName)
 	_ = r.Log.WithValues("policyexception", req.NamespacedName)
 
 	var gsPolicyException policyAPI.PolicyException
@@ -67,7 +71,7 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		// Error fetching the report
 
 		// Check if the PolicyException was deleted
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			// Ignore
 			return ctrl.Result{}, nil
 		}
@@ -84,9 +88,17 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		namespace = r.DestinationNamespace
 	}
 
-	if err := r.reconcileLegacy(ctx, &gsPolicyException, namespace); err != nil {
-		log.Log.Error(err, fmt.Sprintf("Legacy reconciliation failed for PolicyException %s", gsPolicyException.Name))
-		return ctrl.Result{}, err
+	// Run both paths even if one fails: the legacy exception is what protects clusters today.
+	celErr := r.reconcileCEL(ctx, &gsPolicyException, namespace)
+	if celErr != nil {
+		logger.Error(celErr, "CEL reconciliation failed")
+	}
+	legacyErr := r.reconcileLegacy(ctx, &gsPolicyException, namespace)
+	if legacyErr != nil {
+		logger.Error(legacyErr, "legacy reconciliation failed")
+	}
+	if celErr != nil || legacyErr != nil {
+		return ctrl.Result{}, errors.Join(celErr, legacyErr)
 	}
 
 	return utils.JitterRequeue(DefaultRequeueDuration, r.MaxJitterPercent, r.Log), nil
@@ -112,7 +124,7 @@ func generateExceptionKinds(resourceKind string) []string {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *PolicyExceptionReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	b := ctrl.NewControllerManagedBy(mgr).For(&policyAPI.PolicyException{})
+	b := ctrl.NewControllerManagedBy(mgr).For(&policyAPI.PolicyException{}).Owns(&policiesv1.PolicyException{})
 	if r.LegacyMode == LegacyWrite {
 		b = b.Owns(&kyvernov2.PolicyException{})
 	}
