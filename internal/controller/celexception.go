@@ -18,13 +18,13 @@ const (
 
 // objectName falls back to generateName for objects that the API server names after admission,
 // such as Pods created by a ReplicaSet.
-const objectName = `(has(object.metadata.name) && object.metadata.name != "" ? object.metadata.name : (has(object.metadata.generateName) ? object.metadata.generateName : ""))`
+const objectName = `(object.metadata.?name.orValue("") != "" ? object.metadata.name : object.metadata.?generateName.orValue(""))`
 
-const objectNamespace = `(has(object.metadata.namespace) ? object.metadata.namespace : "")`
+const objectNamespace = `object.metadata.?namespace.orValue("")`
 
 // translateTargetsToMatchConditions turns gspolex targets into one CEL match condition that is true
-// when any target matches. A null object (DELETE) never matches, and no targets match nothing:
-// an exception without match conditions would exempt every resource.
+// when any target matches, with one target per line. A null object (DELETE) never matches, and no
+// targets match nothing: an exception without match conditions would exempt every resource.
 func translateTargetsToMatchConditions(targets []policyAPI.Target) []admissionregistrationv1.MatchCondition {
 	expression := "false"
 	if len(targets) > 0 {
@@ -32,21 +32,27 @@ func translateTargetsToMatchConditions(targets []policyAPI.Target) []admissionre
 		for _, target := range targets {
 			parts = append(parts, targetExpression(target))
 		}
-		expression = "object != null && (" + strings.Join(parts, " || ") + ")"
+		expression = "object != null && (\n" + indent(strings.Join(parts, " ||\n")) + "\n)"
 	}
 	return []admissionregistrationv1.MatchCondition{{Name: TargetsMatchConditionName, Expression: expression}}
 }
 
 // targetExpression matches the target kind by its exact name (or the user's wildcard pattern), and
 // the kinds its controller creates by "<name>-" prefix, because those carry generated names.
+// Missing namespaces or names match any.
 func targetExpression(target policyAPI.Target) string {
 	kinds := generateExceptionKinds(target.Kind)
-	own := fmt.Sprintf("(object.kind == %s && %s)", strconv.Quote(target.Kind), anyPattern(objectName, target.Names))
-	clause := own
-	if derived := kinds[1:]; len(derived) > 0 {
-		clause = fmt.Sprintf("(%s || (object.kind in [%s] && %s))", own, quoteAll(derived), anyPattern(objectName, derivedPatterns(target.Names)))
+	namespace := anyPattern(objectNamespace, target.Namespaces)
+	own := allOf(oneOf("object.kind", kinds[:1]), anyPattern(objectName, target.Names))
+	if len(kinds) == 1 {
+		return "(" + allOf(namespace, own) + ")"
 	}
-	return fmt.Sprintf("(%s && %s)", anyPattern(objectNamespace, target.Namespaces), clause)
+	derived := allOf(oneOf("object.kind", kinds[1:]), anyPattern(objectName, derivedPatterns(target.Names)))
+	clause := "(\n  (" + own + ") ||\n  (" + derived + ")\n)"
+	if namespace == "" {
+		return clause
+	}
+	return "(" + namespace + " && " + clause + ")"
 }
 
 // derivedPatterns turns target names into patterns for the objects their controllers create.
@@ -70,20 +76,56 @@ func derivedPatterns(names []string) []string {
 	return patterns
 }
 
-// anyPattern is true when value matches any of the glob patterns, or always when there are none.
+// anyPattern is true when value matches any of the glob patterns, or "" (any value) when there are
+// none. Exact values become == or in, a single trailing * becomes startsWith, and other globs an
+// anchored regex.
 func anyPattern(value string, patterns []string) string {
 	if len(patterns) == 0 {
-		return "true"
+		return ""
 	}
-	parts := make([]string, 0, len(patterns))
+	var exact, parts []string
 	for _, pattern := range patterns {
-		if strings.ContainsAny(pattern, "*?") {
+		prefix, trailingStar := strings.CutSuffix(pattern, "*")
+		switch {
+		case !strings.ContainsAny(pattern, "*?"):
+			exact = append(exact, pattern)
+		case trailingStar && !strings.ContainsAny(prefix, "*?"):
+			parts = append(parts, fmt.Sprintf("%s.startsWith(%s)", value, strconv.Quote(prefix)))
+		default:
 			parts = append(parts, fmt.Sprintf("%s.matches(%s)", value, strconv.Quote(globToRegex(pattern))))
-		} else {
-			parts = append(parts, fmt.Sprintf("%s == %s", value, strconv.Quote(pattern)))
 		}
 	}
+	if len(exact) > 0 {
+		parts = append([]string{oneOf(value, exact)}, parts...)
+	}
+	if len(parts) == 1 {
+		return parts[0]
+	}
 	return "(" + strings.Join(parts, " || ") + ")"
+}
+
+// oneOf is true when value equals one of the given values.
+func oneOf(value string, values []string) string {
+	if len(values) == 1 {
+		return fmt.Sprintf("%s == %s", value, strconv.Quote(values[0]))
+	}
+	return fmt.Sprintf("%s in [%s]", value, quoteAll(values))
+}
+
+// allOf joins the non-empty clauses with &&.
+func allOf(clauses ...string) string {
+	nonEmpty := make([]string, 0, len(clauses))
+	for _, clause := range clauses {
+		if clause != "" {
+			nonEmpty = append(nonEmpty, clause)
+		}
+	}
+	return strings.Join(nonEmpty, " && ")
+}
+
+// indent indents every line by two spaces.
+func indent(s string) string {
+	return "  " + strings.ReplaceAll(s, "\n", "\n  ")
 }
 
 // globToRegex converts a Kyverno-style wildcard (* and ?) into an anchored RE2 expression.
@@ -112,13 +154,16 @@ func quoteAll(values []string) string {
 	return strings.Join(quoted, ", ")
 }
 
-// chartOperatorMatchConditions exempts chart-operator's CREATE and UPDATE of the given kinds.
-// Background scans have no request, so request is checked for null before it is read.
+// chartOperatorMatchConditions exempts chart-operator's CREATE and UPDATE of the given kinds, with
+// one check per line. Background scans have no request, so request is checked for null before it
+// is read.
 func chartOperatorMatchConditions(kinds []string) []admissionregistrationv1.MatchCondition {
 	return []admissionregistrationv1.MatchCondition{{
 		Name: ChartOperatorMatchConditionName,
-		Expression: fmt.Sprintf(
-			`request != null && has(request.userInfo) && has(request.userInfo.username) && request.userInfo.username == %s && request.operation in ["CREATE", "UPDATE"] && object != null && object.kind in [%s]`,
+		Expression: fmt.Sprintf(`request != null && has(request.userInfo) && has(request.userInfo.username) &&
+request.userInfo.username == %s &&
+request.operation in ["CREATE", "UPDATE"] &&
+object != null && object.kind in [%s]`,
 			strconv.Quote(ChartOperatorUsername), quoteAll(kinds)),
 	}}
 }

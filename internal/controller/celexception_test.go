@@ -15,13 +15,13 @@ import (
 )
 
 // eval evaluates a single match condition the way Kyverno does: object and request are bound,
-// and either may be null.
+// and either may be null. Optional types are enabled, as in Kyverno's and the API server's env.
 func eval(t *testing.T, conds []admissionregistrationv1.MatchCondition, object, request any) bool {
 	t.Helper()
 	if len(conds) != 1 {
 		t.Fatalf("want exactly one match condition, got %d", len(conds))
 	}
-	env, err := cel.NewEnv(cel.Variable("object", cel.DynType), cel.Variable("request", cel.DynType))
+	env, err := cel.NewEnv(cel.OptionalTypes(), cel.Variable("object", cel.DynType), cel.Variable("request", cel.DynType))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,6 +60,10 @@ func obj(kind, namespace, name, generateName string) map[string]any {
 func TestTargetsMatchConditions(t *testing.T) {
 	long := strings.Repeat("a", 70)
 	deployment := []policyAPI.Target{{Kind: "Deployment", Namespaces: []string{"default"}, Names: []string{"test-app-1"}}}
+	twoNames := []policyAPI.Target{{Kind: "Deployment", Namespaces: []string{"default"}, Names: []string{"app-a", "app-b"}}}
+	if expr := translateTargetsToMatchConditions(twoNames)[0].Expression; !strings.Contains(expr, `in ["app-a", "app-b"]`) {
+		t.Errorf("two exact names should use an in list: %s", expr)
+	}
 	tests := []struct {
 		name    string
 		targets []policyAPI.Target
@@ -85,6 +89,12 @@ func TestTargetsMatchConditions(t *testing.T) {
 		{"namespace wildcard", []policyAPI.Target{{Kind: "Pod", Namespaces: []string{"team-*"}}}, obj("Pod", "team-a", "p", ""), true},
 		{"no targets matches nothing", nil, obj("Pod", "default", "p", ""), false},
 		{"second target", []policyAPI.Target{deployment[0], {Kind: "DaemonSet", Names: []string{"ds"}}}, obj("DaemonSet", "any", "ds", ""), true},
+		{"first of two names", twoNames, obj("Deployment", "default", "app-a", ""), true},
+		{"second of two names", twoNames, obj("Deployment", "default", "app-b", ""), true},
+		{"pod of the second name", twoNames, obj("Pod", "default", "", "app-b-5d4f8-"), true},
+		{"neither of two names", twoNames, obj("Deployment", "default", "app-c", ""), false},
+		{"object without a namespace field", []policyAPI.Target{{Kind: "Namespace", Names: []string{"team-a"}}}, map[string]any{"kind": "Namespace", "metadata": map[string]any{"name": "team-a"}}, true},
+		{"namespace filter on an object without a namespace field", []policyAPI.Target{{Kind: "Namespace", Namespaces: []string{"x"}}}, map[string]any{"kind": "Namespace", "metadata": map[string]any{"name": "team-a"}}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -92,6 +102,26 @@ func TestTargetsMatchConditions(t *testing.T) {
 				t.Errorf("got %v, want %v; expression: %s", got, tt.want, translateTargetsToMatchConditions(tt.targets)[0].Expression)
 			}
 		})
+	}
+}
+
+// TestTargetsMatchConditionsFormat pins the generated layout so that it stays readable in kubectl.
+func TestTargetsMatchConditionsFormat(t *testing.T) {
+	targets := []policyAPI.Target{{Kind: "Deployment", Namespaces: []string{"default"}, Names: []string{"test-app-1"}}}
+	want := `object != null && (
+  (object.metadata.?namespace.orValue("") == "default" && (
+    (object.kind == "Deployment" && (object.metadata.?name.orValue("") != "" ? object.metadata.name : object.metadata.?generateName.orValue("")) == "test-app-1") ||
+    (object.kind in ["ReplicaSet", "Pod"] && (object.metadata.?name.orValue("") != "" ? object.metadata.name : object.metadata.?generateName.orValue("")).startsWith("test-app-1-"))
+  ))
+)`
+	got := translateTargetsToMatchConditions(targets)[0].Expression
+	if got != want {
+		t.Errorf("got:\n%s\nwant:\n%s", got, want)
+	}
+	for _, line := range strings.Split(got, "\n") {
+		if strings.TrimRight(line, " \t") != line {
+			t.Errorf("trailing whitespace in %q", line)
+		}
 	}
 }
 
@@ -152,7 +182,7 @@ func kyvernoExceptionEnv(t *testing.T) *cel.Env {
 func TestMatchConditionsCompileInKyvernoEnv(t *testing.T) {
 	env := kyvernoExceptionEnv(t)
 	for name, conds := range map[string][]admissionregistrationv1.MatchCondition{
-		"targets":        translateTargetsToMatchConditions([]policyAPI.Target{{Kind: "Deployment", Namespaces: []string{"default", "team-*"}, Names: []string{"a", "b-*"}}}),
+		"targets":        translateTargetsToMatchConditions([]policyAPI.Target{{Kind: "Deployment", Namespaces: []string{"default", "team-*"}, Names: []string{"a", "b-*", "c?d"}}}),
 		"no targets":     translateTargetsToMatchConditions(nil),
 		"chart-operator": chartOperatorMatchConditions([]string{"Namespace"}),
 	} {
