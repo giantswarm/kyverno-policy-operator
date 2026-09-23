@@ -102,7 +102,7 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 							policyException.Namespace = "giantswarm"
 
 							// Set name
-							policyException.Name = "chart-operator-generated-sa-bypass"
+							policyException.Name = ChartOperatorBypassName
 
 							// Set labels
 							setManagedLabels(&policyException, SourceChartOperator)
