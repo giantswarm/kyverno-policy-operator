@@ -105,7 +105,7 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 							policyException.Name = "chart-operator-generated-sa-bypass"
 
 							// Set labels
-							policyException.Labels = generateLabels()
+							setManagedLabels(&policyException, SourceChartOperator)
 
 							// Set Background behaviour to false since this Polex is using Subjects
 							background := false
