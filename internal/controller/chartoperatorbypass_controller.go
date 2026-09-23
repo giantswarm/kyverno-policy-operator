@@ -51,11 +51,16 @@ func (r *ChartOperatorBypassReconciler) Reconcile(ctx context.Context, _ ctrl.Re
 	var policies policiesv1.ValidatingPolicyList
 	if err := r.List(ctx, &policies); err != nil {
 		logger.Error(err, "failed to list ValidatingPolicies")
+		GenerationErrors.WithLabelValues(APICEL, "lookup_failed").Inc()
 		return ctrl.Result{}, err
 	}
 
 	if len(policies.Items) == 0 {
-		return ctrl.Result{}, deleteManaged(ctx, r.Client, &bypass)
+		if err := deleteManaged(ctx, r.Client, &bypass); err != nil {
+			GenerationErrors.WithLabelValues(APICEL, "delete_failed").Inc()
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
 	}
 
 	refs := make([]policiesv1.PolicyRef, 0, len(policies.Items))
@@ -73,6 +78,7 @@ func (r *ChartOperatorBypassReconciler) Reconcile(ctx context.Context, _ ctrl.Re
 	})
 	if err != nil {
 		logger.Error(err, "failed to reconcile chart-operator bypass")
+		GenerationErrors.WithLabelValues(APICEL, "apply_failed").Inc()
 		return ctrl.Result{}, err
 	}
 	if op != controllerutil.OperationResultNone {

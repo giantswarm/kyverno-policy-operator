@@ -45,6 +45,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	//+kubebuilder:scaffold:imports
 )
@@ -140,6 +141,12 @@ func main() {
 		os.Exit(1)
 	}
 	setupLog.Info("legacy PolicyExceptions", "mode", legacyMode)
+
+	metrics.Registry.MustRegister(controller.GenerationErrors, &controller.ExceptionCollector{
+		Reader:     mgr.GetClient(),
+		LegacyMode: legacyMode,
+		Log:        ctrl.Log.WithName("metrics"),
+	})
 
 	if legacyMode == controller.LegacyCleanup {
 		directClient, err := client.New(mgr.GetConfig(), client.Options{Scheme: mgr.GetScheme()})

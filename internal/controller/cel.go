@@ -23,6 +23,7 @@ func (r *PolicyExceptionReconciler) reconcileCEL(ctx context.Context, gspolex *p
 		policyRefs, resolved, err := resolvePolicyRefs(ctx, r.Client, name)
 		if err != nil {
 			logger.Error(err, "failed to resolve policy refs", "policy", name)
+			GenerationErrors.WithLabelValues(APICEL, "lookup_failed").Inc()
 			return err
 		}
 		if !resolved {
@@ -37,7 +38,11 @@ func (r *PolicyExceptionReconciler) reconcileCEL(ctx context.Context, gspolex *p
 	celException := policiesv1.PolicyException{ObjectMeta: metav1.ObjectMeta{Name: gspolex.Name, Namespace: namespace}}
 	if len(refs) == 0 {
 		// policyRefs is required; a gspolex without policies exempts nothing.
-		return deleteManaged(ctx, r.Client, &celException)
+		if err := deleteManaged(ctx, r.Client, &celException); err != nil {
+			GenerationErrors.WithLabelValues(APICEL, "delete_failed").Inc()
+			return err
+		}
+		return nil
 	}
 	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, &celException, func() error {
 		setManagedLabels(&celException, sourceOf(gspolex))
@@ -52,6 +57,7 @@ func (r *PolicyExceptionReconciler) reconcileCEL(ctx context.Context, gspolex *p
 	})
 	if err != nil {
 		logger.Error(err, "failed to reconcile CEL PolicyException")
+		GenerationErrors.WithLabelValues(APICEL, "apply_failed").Inc()
 		return err
 	}
 	if op != controllerutil.OperationResultNone {

@@ -88,6 +88,7 @@ func (r *PolicyExceptionReconciler) reconcileLegacy(ctx context.Context, gspolex
 				logger.V(1).Info("not a ClusterPolicy", "policy", name)
 			default:
 				logger.Error(err, "failed to get ClusterPolicy", "policy", name)
+				GenerationErrors.WithLabelValues(APILegacy, "lookup_failed").Inc()
 				return err
 			}
 		}
@@ -95,7 +96,11 @@ func (r *PolicyExceptionReconciler) reconcileLegacy(ctx context.Context, gspolex
 
 	legacy := kyvernov2.PolicyException{ObjectMeta: metav1.ObjectMeta{Name: gspolex.Name, Namespace: namespace}}
 	if len(policies) == 0 {
-		return deleteManaged(ctx, r.Client, &legacy)
+		if err := deleteManaged(ctx, r.Client, &legacy); err != nil {
+			GenerationErrors.WithLabelValues(APILegacy, "delete_failed").Inc()
+			return err
+		}
+		return nil
 	}
 
 	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, &legacy, func() error {
@@ -112,6 +117,7 @@ func (r *PolicyExceptionReconciler) reconcileLegacy(ctx context.Context, gspolex
 	})
 	if err != nil {
 		logger.Error(err, "failed to reconcile legacy PolicyException")
+		GenerationErrors.WithLabelValues(APILegacy, "apply_failed").Inc()
 		return err
 	}
 	if op != controllerutil.OperationResultNone {
