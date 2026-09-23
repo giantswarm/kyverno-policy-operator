@@ -10,7 +10,10 @@ import (
 )
 
 func TestDetectLegacyMode(t *testing.T) {
-	both := []schema.GroupVersionKind{kyvernov1.SchemeGroupVersion.WithKind("ClusterPolicy"), kyvernov2.SchemeGroupVersion.WithKind("PolicyException")}
+	both := []schema.GroupVersionKind{
+		schema.GroupVersion(kyvernov1.GroupVersion).WithKind("ClusterPolicy"),
+		schema.GroupVersion(kyvernov2.GroupVersion).WithKind("PolicyException"),
+	}
 	tests := []struct {
 		name    string
 		kinds   []schema.GroupVersionKind

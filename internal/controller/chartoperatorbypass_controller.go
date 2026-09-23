@@ -31,6 +31,10 @@ import (
 
 const ChartOperatorBypassName = "chart-operator-generated-sa-bypass"
 
+// ChartOperatorBypassNamespace is the namespace the chart-operator bypass PolicyException lives in,
+// and the namespace of the chart-operator ServiceAccount it exempts.
+const ChartOperatorBypassNamespace = "giantswarm"
+
 // ChartOperatorBypassReconciler keeps the CEL counterpart of the chart-operator bypass: one
 // policies.kyverno.io PolicyException exempting chart-operator's CREATE and UPDATE of Kinds from
 // every ValidatingPolicy. Referencing every policy matches the legacy bypass, because the match

@@ -99,7 +99,7 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 							policyException := kyvernov2.PolicyException{}
 
 							// Set namespace
-							policyException.Namespace = "giantswarm"
+							policyException.Namespace = ChartOperatorBypassNamespace
 
 							// Set name
 							policyException.Name = ChartOperatorBypassName
@@ -174,7 +174,7 @@ func templateResourceFilters(kinds []string) kyvernov1.ResourceFilters {
 			Subjects: []rbacv1.Subject{{
 				Kind:      "ServiceAccount",
 				Name:      "chart-operator",
-				Namespace: "giantswarm",
+				Namespace: ChartOperatorBypassNamespace,
 			}},
 		},
 		ResourceDescription: kyvernov1.ResourceDescription{

@@ -23,6 +23,7 @@ import (
 	policiesv1 "github.com/kyverno/api/api/policies.kyverno.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -43,7 +44,7 @@ func TestResolvePolicyRefs(t *testing.T) {
 	// A scheme that only knows ValidatingPolicy stands in for a cluster
 	// where the other CEL CRDs are not installed.
 	vpolOnly := runtime.NewScheme()
-	vpolOnly.AddKnownTypes(policiesv1.SchemeGroupVersion, &policiesv1.ValidatingPolicy{}, &policiesv1.ValidatingPolicyList{})
+	vpolOnly.AddKnownTypes(schema.GroupVersion(policiesv1.GroupVersion), &policiesv1.ValidatingPolicy{}, &policiesv1.ValidatingPolicyList{})
 
 	tests := []struct {
 		name         string

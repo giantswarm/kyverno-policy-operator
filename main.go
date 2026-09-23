@@ -211,7 +211,7 @@ func main() {
 		if err = (&controller.ChartOperatorBypassReconciler{
 			Client:    mgr.GetClient(),
 			Kinds:     chartOperatorExceptionKinds,
-			Namespace: "giantswarm",
+			Namespace: controller.ChartOperatorBypassNamespace,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ChartOperatorBypass")
 			os.Exit(1)

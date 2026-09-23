@@ -37,8 +37,8 @@ func (m LegacyMode) String() string {
 // PolicyException CRDs, and KPO must keep starting without them.
 func DetectLegacyMode(mapper meta.RESTMapper, enabled bool) (LegacyMode, error) {
 	for _, gvk := range []schema.GroupVersionKind{
-		kyvernov1.SchemeGroupVersion.WithKind("ClusterPolicy"),
-		kyvernov2.SchemeGroupVersion.WithKind("PolicyException"),
+		schema.GroupVersion(kyvernov1.GroupVersion).WithKind("ClusterPolicy"),
+		schema.GroupVersion(kyvernov2.GroupVersion).WithKind("PolicyException"),
 	} {
 		if _, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version); err != nil {
 			if meta.IsNoMatchError(err) {
@@ -56,7 +56,7 @@ func DetectLegacyMode(mapper meta.RESTMapper, enabled bool) (LegacyMode, error) 
 // DeleteLegacyChartOperatorBypass removes the kyverno.io/v2 chart-operator bypass the ClusterPolicy
 // controller maintained, once legacy exceptions are switched off.
 func DeleteLegacyChartOperatorBypass(ctx context.Context, c client.Client) error {
-	return deleteManaged(ctx, c, &kyvernov2.PolicyException{ObjectMeta: metav1.ObjectMeta{Namespace: "giantswarm", Name: ChartOperatorBypassName}})
+	return deleteManaged(ctx, c, &kyvernov2.PolicyException{ObjectMeta: metav1.ObjectMeta{Namespace: ChartOperatorBypassNamespace, Name: ChartOperatorBypassName}})
 }
 
 // reconcileLegacy keeps the kyverno.io/v2 PolicyException for a gspolex. It lists only the policies
