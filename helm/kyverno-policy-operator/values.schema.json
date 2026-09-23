@@ -253,6 +253,9 @@
                 },
                 "exceptionBackgroundMode": {
                     "type": "boolean"
+                },
+                "legacyExceptions": {
+                    "type": "boolean"
                 }
             }
         },

@@ -73,6 +73,9 @@ policyOperator:
   enablePolicyManifests: false
   # Apply the generated PolicyExceptions also in Kyverno background scans. Changes audit results from fail to skip.
   exceptionBackgroundMode: true
+  # Also write kyverno.io/v2 PolicyExceptions. Set to false once all policies are CEL policies:
+  # the operator then deletes the kyverno.io/v2 PolicyExceptions it created.
+  legacyExceptions: true
   chartOperatorExceptionKinds:
     - PolicyException
     - Namespace
