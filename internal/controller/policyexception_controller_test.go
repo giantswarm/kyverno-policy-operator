@@ -322,6 +322,20 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 			Expect(celException.Spec.MatchConditions[0].Expression).To(Equal("false"))
 		})
 
+		It("deletes the managed CEL exception when the gspolex lists no policies", func() {
+			_, err := r.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(k8sClient.Get(ctx, req.NamespacedName, &celException)).To(Succeed())
+
+			gsPolicyException.Spec.Policies = []string{}
+			Expect(k8sClient.Update(ctx, &gsPolicyException)).To(Succeed())
+			_, err = r.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = k8sClient.Get(ctx, req.NamespacedName, &celException)
+			Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		})
+
 		It("leaves an unmanaged CEL PolicyException alone", func() {
 			unmanaged := policiesv1.PolicyException{
 				ObjectMeta: metav1.ObjectMeta{Name: gsPolicyException.Name, Namespace: "default"},
