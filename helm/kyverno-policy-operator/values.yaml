@@ -81,6 +81,10 @@ policyOperator:
     - Namespace
 
 monitoring:
+  podMonitor:
+    # Scrape the operator's metrics endpoint.
+    enabled: true
+
   podLogs:
     # Enable log collection for monitoring.
     enabled: true

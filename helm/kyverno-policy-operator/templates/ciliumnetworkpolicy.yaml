@@ -16,4 +16,10 @@ spec:
   ingress:
     - fromEntities:
         - kube-apiserver
+    - fromEntities:
+        - cluster
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
 {{- end }}
