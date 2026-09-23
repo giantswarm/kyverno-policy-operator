@@ -203,6 +203,26 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 		})
 	})
 
+	Context("When a Kyverno PolicyException exists that KPO does not manage", func() {
+		It("leaves the unmanaged object alone", func() {
+			unmanaged := kyvernov2.PolicyException{
+				ObjectMeta: metav1.ObjectMeta{Name: gsPolicyException.Name, Namespace: "default"},
+				Spec: kyvernov2.PolicyExceptionSpec{
+					Exceptions: []kyvernov2.Exception{{PolicyName: "not-managed-by-kpo", RuleNames: []string{"rule"}}},
+				},
+			}
+			Expect(k8sClient.Create(ctx, &unmanaged)).To(Succeed())
+
+			// Drive reconcileLegacy down the prune path, which is where an unmanaged
+			// object could otherwise be deleted.
+			Expect(k8sClient.Delete(ctx, &kyvernoClusterPolicy)).Should(Succeed())
+			_, err := r.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(k8sClient.Get(ctx, req.NamespacedName, &kyvernov2.PolicyException{})).To(Succeed())
+		})
+	})
+
 	Context("When legacy exceptions are switched off", func() {
 		It("deletes the managed legacy exception", func() {
 			_, err := r.Reconcile(ctx, req)
@@ -300,6 +320,25 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 			Expect(err).NotTo(HaveOccurred())
 			Expect(k8sClient.Get(ctx, req.NamespacedName, &celException)).To(Succeed())
 			Expect(celException.Spec.MatchConditions[0].Expression).To(Equal("false"))
+		})
+
+		It("leaves an unmanaged CEL PolicyException alone", func() {
+			unmanaged := policiesv1.PolicyException{
+				ObjectMeta: metav1.ObjectMeta{Name: gsPolicyException.Name, Namespace: "default"},
+				Spec: policiesv1.PolicyExceptionSpec{
+					PolicyRefs: []policiesv1.PolicyRef{{Name: "not-managed-by-kpo", Kind: "ValidatingPolicy"}},
+				},
+			}
+			Expect(k8sClient.Create(ctx, &unmanaged)).To(Succeed())
+
+			// A gspolex with no policies drives reconcileCEL down the prune path, which
+			// is where an unmanaged object could otherwise be deleted.
+			gsPolicyException.Spec.Policies = []string{}
+			Expect(k8sClient.Update(ctx, &gsPolicyException)).To(Succeed())
+			_, err := r.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(k8sClient.Get(ctx, req.NamespacedName, &celException)).To(Succeed())
 		})
 	})
 })
