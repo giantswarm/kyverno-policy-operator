@@ -7,7 +7,9 @@ import (
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 	kyvernov2 "github.com/kyverno/kyverno/api/kyverno/v2"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -25,6 +27,37 @@ const (
 	// LegacyAbsent means the kyverno.io ClusterPolicy or PolicyException CRDs are not installed.
 	LegacyAbsent
 )
+
+func (m LegacyMode) String() string {
+	return [...]string{"write", "cleanup", "absent"}[m]
+}
+
+// DetectLegacyMode decides from the API server's CRDs and the --legacy-exceptions switch how KPO
+// treats kyverno.io/v2 PolicyExceptions. Kyverno 1.20 removes the ClusterPolicy and legacy
+// PolicyException CRDs, and KPO must keep starting without them.
+func DetectLegacyMode(mapper meta.RESTMapper, enabled bool) (LegacyMode, error) {
+	for _, gvk := range []schema.GroupVersionKind{
+		kyvernov1.SchemeGroupVersion.WithKind("ClusterPolicy"),
+		kyvernov2.SchemeGroupVersion.WithKind("PolicyException"),
+	} {
+		if _, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version); err != nil {
+			if meta.IsNoMatchError(err) {
+				return LegacyAbsent, nil
+			}
+			return LegacyAbsent, err
+		}
+	}
+	if !enabled {
+		return LegacyCleanup, nil
+	}
+	return LegacyWrite, nil
+}
+
+// DeleteLegacyChartOperatorBypass removes the kyverno.io/v2 chart-operator bypass the ClusterPolicy
+// controller maintained, once legacy exceptions are switched off.
+func DeleteLegacyChartOperatorBypass(ctx context.Context, c client.Client) error {
+	return deleteManaged(ctx, c, &kyvernov2.PolicyException{ObjectMeta: metav1.ObjectMeta{Namespace: "giantswarm", Name: ChartOperatorBypassName}})
+}
 
 // reconcileLegacy keeps the kyverno.io/v2 PolicyException for a gspolex. It lists only the policies
 // that exist as ClusterPolicies, and deletes the exception when there are none, the gspolex was
