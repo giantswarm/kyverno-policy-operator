@@ -27,6 +27,8 @@ import (
 
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 
+	policiesv1 "github.com/kyverno/api/api/policies.kyverno.io/v1"
+
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
 
 	"github.com/giantswarm/kyverno-policy-operator/internal/controller"
@@ -53,6 +55,7 @@ var (
 func init() {
 	utilruntime.Must(kyvernov2.Install(scheme))
 	utilruntime.Must(kyvernov1.Install(scheme))
+	utilruntime.Must(policiesv1.Install(scheme))
 	utilruntime.Must(policyAPI.AddToScheme(scheme))
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
