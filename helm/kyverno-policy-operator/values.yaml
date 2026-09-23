@@ -68,6 +68,9 @@ resources:
 policyOperator:
   # Set where to install PolicyExceptions
   destinationNamespace: "policy-exceptions"
+  # Reconcile PolicyManifests into kyverno.io/v2 PolicyExceptions. Off: policy-meta-operator, which
+  # produces PolicyManifests, is not in use. Only takes effect while legacy exceptions are written.
+  enablePolicyManifests: false
   # Apply the generated PolicyExceptions also in Kyverno background scans. Changes audit results from fail to skip.
   exceptionBackgroundMode: true
   chartOperatorExceptionKinds:

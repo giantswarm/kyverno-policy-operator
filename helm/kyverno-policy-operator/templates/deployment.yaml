@@ -61,6 +61,7 @@ spec:
           - --chart-operator-exception-kinds={{ .Values.policyOperator.chartOperatorExceptionKinds | join "," }}
         {{- end }}
           - --background-mode={{ .Values.policyOperator.exceptionBackgroundMode }}
+          - --enable-policy-manifests={{ .Values.policyOperator.enablePolicyManifests }}
         ports:
         - containerPort: 8080
           name: metrics

@@ -248,6 +248,9 @@
                 "destinationNamespace": {
                     "type": "string"
                 },
+                "enablePolicyManifests": {
+                    "type": "boolean"
+                },
                 "exceptionBackgroundMode": {
                     "type": "boolean"
                 }
