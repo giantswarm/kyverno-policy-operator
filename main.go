@@ -183,6 +183,7 @@ func main() {
 	}
 
 	if legacyMode == controller.LegacyWrite {
+		setupLog.Info("setting up ClusterPolicy controller")
 		if err = (&controller.ClusterPolicyReconciler{
 			Client:                      mgr.GetClient(),
 			Scheme:                      mgr.GetScheme(),
@@ -199,6 +200,7 @@ func main() {
 	}
 
 	if len(chartOperatorExceptionKinds) != 0 {
+		setupLog.Info("setting up ChartOperatorBypass controller")
 		if err = (&controller.ChartOperatorBypassReconciler{
 			Client:    mgr.GetClient(),
 			Kinds:     chartOperatorExceptionKinds,
@@ -207,6 +209,8 @@ func main() {
 			setupLog.Error(err, "unable to create controller", "controller", "ChartOperatorBypass")
 			os.Exit(1)
 		}
+	} else {
+		setupLog.Info("no chart-operator exception kinds configured; not starting the ChartOperatorBypass controller")
 	}
 
 	//+kubebuilder:scaffold:builder
