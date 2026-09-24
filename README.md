@@ -137,7 +137,11 @@ The operator exposes Prometheus metrics on the metrics endpoint (scraped by
 - `kyverno_policy_operator_unresolved_policy_refs{policy}`: generated CEL exceptions referencing a
   policy name that currently matches no CEL policy.
 - `kyverno_policy_operator_generation_errors_total{api,reason}`: errors writing or deleting generated
-  PolicyExceptions.
+  PolicyExceptions (`reason`: `lookup_failed`, `apply_failed`, `delete_failed`, `name_taken`).
+
+The gauges report `0` for every source they counted and found none of, and every error series
+starts at `0`. The `legacy` and dual gauges are missing while the legacy CRDs are absent or the
+legacy list fails, and `unresolved_policy_refs` only has series for names that are unresolved.
 
 ## Installing
 

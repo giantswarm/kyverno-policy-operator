@@ -23,6 +23,28 @@ var GenerationErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Help: "Errors writing or deleting generated Kyverno PolicyExceptions.",
 }, []string{"api", "reason"})
 
+// sources are the policy.giantswarm.io/source values. The gauges report 0 for each one they
+// counted and found none of, so dashboards show 0 instead of no data.
+var sources = []string{SourceGSPolex, SourceExceptionRecommender, SourceChartOperator}
+
+func init() {
+	// Start every error series at 0, so increase() and rate() show 0 instead of no data.
+	for _, api := range []string{APILegacy, APICEL} {
+		for _, reason := range []string{"lookup_failed", "apply_failed", "delete_failed", "name_taken"} {
+			GenerationErrors.WithLabelValues(api, reason)
+		}
+	}
+}
+
+// zeroCounts returns a count of 0 for every source.
+func zeroCounts() map[string]int {
+	counts := make(map[string]int, len(sources))
+	for _, source := range sources {
+		counts[source] = 0
+	}
+	return counts
+}
+
 var (
 	exceptionsDesc = prometheus.NewDesc("kyverno_policy_operator_policyexceptions",
 		"Generated Kyverno PolicyExceptions by API and source.", []string{"api", "source"}, nil)
@@ -60,14 +82,17 @@ func (c *ExceptionCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 	ch <- prometheus.MustNewConstMetric(legacyEnabledDesc, prometheus.GaugeValue, legacyEnabled)
 
+	// Dual exceptions are only counted, and reported as 0, once the legacy list succeeded.
 	legacyKeys := map[types.NamespacedName]bool{}
+	legacyListed := false
 	if c.LegacyMode != LegacyAbsent {
 		var legacy kyvernov2.PolicyExceptionList
 		if err := c.Reader.List(ctx, &legacy, managed); err != nil {
 			// Skip only the legacy gauges; the CEL ones do not depend on them.
 			c.Log.Error(err, "unable to list kyverno.io PolicyExceptions for metrics")
 		} else {
-			counts := map[string]int{}
+			legacyListed = true
+			counts := zeroCounts()
 			for _, p := range legacy.Items {
 				counts[p.Labels[LabelSource]]++
 				legacyKeys[types.NamespacedName{Namespace: p.Namespace, Name: p.Name}] = true
@@ -83,7 +108,10 @@ func (c *ExceptionCollector) Collect(ch chan<- prometheus.Metric) {
 		c.Log.Error(err, "unable to list policies.kyverno.io PolicyExceptions for metrics")
 		return
 	}
-	counts, dual, unresolved := map[string]int{}, map[string]int{}, map[string]int{}
+	counts, dual, unresolved := zeroCounts(), map[string]int{}, map[string]int{}
+	if legacyListed {
+		dual = zeroCounts()
+	}
 	for _, p := range cel.Items {
 		source := p.Labels[LabelSource]
 		counts[source]++

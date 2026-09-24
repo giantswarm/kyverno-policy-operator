@@ -42,14 +42,19 @@ func TestExceptionCollector(t *testing.T) {
 	expected := `
 # HELP kyverno_policy_operator_dual_policyexceptions Generated exceptions that exist both as kyverno.io/v2 and policies.kyverno.io PolicyExceptions.
 # TYPE kyverno_policy_operator_dual_policyexceptions gauge
+kyverno_policy_operator_dual_policyexceptions{source="chart-operator"} 0
+kyverno_policy_operator_dual_policyexceptions{source="exception-recommender"} 0
 kyverno_policy_operator_dual_policyexceptions{source="gspolex"} 1
 # HELP kyverno_policy_operator_legacy_exceptions_enabled Whether kyverno.io/v2 PolicyExceptions are being written (1) or not (0).
 # TYPE kyverno_policy_operator_legacy_exceptions_enabled gauge
 kyverno_policy_operator_legacy_exceptions_enabled 1
 # HELP kyverno_policy_operator_policyexceptions Generated Kyverno PolicyExceptions by API and source.
 # TYPE kyverno_policy_operator_policyexceptions gauge
+kyverno_policy_operator_policyexceptions{api="cel",source="chart-operator"} 0
 kyverno_policy_operator_policyexceptions{api="cel",source="exception-recommender"} 1
 kyverno_policy_operator_policyexceptions{api="cel",source="gspolex"} 2
+kyverno_policy_operator_policyexceptions{api="legacy",source="chart-operator"} 0
+kyverno_policy_operator_policyexceptions{api="legacy",source="exception-recommender"} 0
 kyverno_policy_operator_policyexceptions{api="legacy",source="gspolex"} 1
 # HELP kyverno_policy_operator_unresolved_policy_refs Generated CEL exceptions referencing a policy name that matches no CEL policy.
 # TYPE kyverno_policy_operator_unresolved_policy_refs gauge
@@ -88,9 +93,42 @@ func TestExceptionCollectorLegacyListFails(t *testing.T) {
 kyverno_policy_operator_legacy_exceptions_enabled 1
 # HELP kyverno_policy_operator_policyexceptions Generated Kyverno PolicyExceptions by API and source.
 # TYPE kyverno_policy_operator_policyexceptions gauge
+kyverno_policy_operator_policyexceptions{api="cel",source="chart-operator"} 0
+kyverno_policy_operator_policyexceptions{api="cel",source="exception-recommender"} 0
 kyverno_policy_operator_policyexceptions{api="cel",source="gspolex"} 1
 `
 	if err := testutil.CollectAndCompare(collector, strings.NewReader(expected)); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// Without the legacy CRDs only the CEL gauges are reported, each at 0 when nothing was generated.
+func TestExceptionCollectorLegacyAbsent(t *testing.T) {
+	s := runtime.NewScheme()
+	if err := policiesv1.Install(s); err != nil {
+		t.Fatal(err)
+	}
+	c := fake.NewClientBuilder().WithScheme(s).Build()
+
+	collector := &ExceptionCollector{Reader: c, LegacyMode: LegacyAbsent, Log: logr.Discard()}
+	expected := `
+# HELP kyverno_policy_operator_legacy_exceptions_enabled Whether kyverno.io/v2 PolicyExceptions are being written (1) or not (0).
+# TYPE kyverno_policy_operator_legacy_exceptions_enabled gauge
+kyverno_policy_operator_legacy_exceptions_enabled 0
+# HELP kyverno_policy_operator_policyexceptions Generated Kyverno PolicyExceptions by API and source.
+# TYPE kyverno_policy_operator_policyexceptions gauge
+kyverno_policy_operator_policyexceptions{api="cel",source="chart-operator"} 0
+kyverno_policy_operator_policyexceptions{api="cel",source="exception-recommender"} 0
+kyverno_policy_operator_policyexceptions{api="cel",source="gspolex"} 0
+`
+	if err := testutil.CollectAndCompare(collector, strings.NewReader(expected)); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// Every api and reason series exists from the start, so increase() shows 0 instead of no data.
+func TestGenerationErrorsStartAtZero(t *testing.T) {
+	if got := testutil.CollectAndCount(GenerationErrors); got != 8 {
+		t.Errorf("got %d error series, want 8 (2 APIs x 4 reasons)", got)
 	}
 }

@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Add `.golangci.yml` so `goconst` does not flag repeated fixture strings in table-driven tests.
-- Write a `policies.kyverno.io/v1` PolicyException next to the `kyverno.io/v2` one per Giant Swarm PolicyException, plus a CEL chart-operator bypass, so exceptions survive the move to ValidatingPolicy. It matches target names exactly, and their pods by `<name>-` prefix, and never changes a `policies.kyverno.io` PolicyException it did not create. New `--legacy-exceptions` switch (Helm `policyOperator.legacyExceptions`); the operator starts without the legacy Kyverno CRDs. Adds migration metrics and a `monitoring.podMonitor`.
+- Write a `policies.kyverno.io/v1` PolicyException next to the `kyverno.io/v2` one per Giant Swarm PolicyException, plus a CEL chart-operator bypass, so exceptions survive the move to ValidatingPolicy. It matches target names exactly, and their pods by `<name>-` prefix, and never changes a `policies.kyverno.io` PolicyException it did not create. New `--legacy-exceptions` switch (Helm `policyOperator.legacyExceptions`); the operator starts without the legacy Kyverno CRDs. Adds migration metrics, reported as 0 when empty, and a `monitoring.podMonitor`.
 
 ## [0.2.3] - 2026-07-30
 
