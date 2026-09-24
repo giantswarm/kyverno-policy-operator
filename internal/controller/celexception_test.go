@@ -61,9 +61,9 @@ func TestTargetsMatchConditions(t *testing.T) {
 	long := strings.Repeat("a", 70)
 	deployment := []policyAPI.Target{{Kind: "Deployment", Namespaces: []string{"default"}, Names: []string{"test-app-1"}}}
 	twoNames := []policyAPI.Target{{Kind: "Deployment", Namespaces: []string{"default"}, Names: []string{"app-a", "app-b"}}}
-	if expr := translateTargetsToMatchConditions(twoNames)[0].Expression; !strings.Contains(expr, `in ["app-a", "app-b"]`) {
-		t.Errorf("two exact names should use an in list: %s", expr)
-	}
+	middleGlob := []policyAPI.Target{{Kind: "Deployment", Names: []string{"app-*-web"}}}
+	singleChar := []policyAPI.Target{{Kind: "Deployment", Names: []string{"a?c"}}}
+	mixed := []policyAPI.Target{{Kind: "Deployment", Names: []string{"api", "worker", "web-*", "db-?-x"}}}
 	tests := []struct {
 		name    string
 		targets []policyAPI.Target
@@ -93,6 +93,17 @@ func TestTargetsMatchConditions(t *testing.T) {
 		{"second of two names", twoNames, obj("Deployment", "default", "app-b", ""), true},
 		{"pod of the second name", twoNames, obj("Pod", "default", "", "app-b-5d4f8-"), true},
 		{"neither of two names", twoNames, obj("Deployment", "default", "app-c", ""), false},
+		{"middle wildcard", middleGlob, obj("Deployment", "x", "app-x-web", ""), true},
+		{"middle wildcard is anchored at the start", middleGlob, obj("Deployment", "x", "myapp-x-web", ""), false},
+		{"middle wildcard is anchored at the end", middleGlob, obj("Deployment", "x", "app-x-web2", ""), false},
+		{"? matches one character", singleChar, obj("Deployment", "x", "abc", ""), true},
+		{"? does not match zero characters", singleChar, obj("Deployment", "x", "ac", ""), false},
+		{"? does not match two characters", singleChar, obj("Deployment", "x", "abbc", ""), false},
+		{"mixed names: exact", mixed, obj("Deployment", "x", "api", ""), true},
+		{"mixed names: second exact", mixed, obj("Deployment", "x", "worker", ""), true},
+		{"mixed names: trailing wildcard", mixed, obj("Deployment", "x", "web-1", ""), true},
+		{"mixed names: middle glob", mixed, obj("Deployment", "x", "db-a-x", ""), true},
+		{"mixed names: none", mixed, obj("Deployment", "x", "db-ab-x", ""), false},
 		{"object without a namespace field", []policyAPI.Target{{Kind: "Namespace", Names: []string{"team-a"}}}, map[string]any{"kind": "Namespace", "metadata": map[string]any{"name": "team-a"}}, true},
 		{"namespace filter on an object without a namespace field", []policyAPI.Target{{Kind: "Namespace", Namespaces: []string{"x"}}}, map[string]any{"kind": "Namespace", "metadata": map[string]any{"name": "team-a"}}, false},
 	}
@@ -107,21 +118,56 @@ func TestTargetsMatchConditions(t *testing.T) {
 
 // TestTargetsMatchConditionsFormat pins the generated layout so that it stays readable in kubectl.
 func TestTargetsMatchConditionsFormat(t *testing.T) {
-	targets := []policyAPI.Target{{Kind: "Deployment", Namespaces: []string{"default"}, Names: []string{"test-app-1"}}}
-	want := `object != null && (
+	const name = `(object.metadata.?name.orValue("") != "" ? object.metadata.name : object.metadata.?generateName.orValue(""))`
+	tests := []struct {
+		name    string
+		targets []policyAPI.Target
+		want    string
+	}{
+		{
+			name:    "one namespaced target",
+			targets: []policyAPI.Target{{Kind: "Deployment", Namespaces: []string{"default"}, Names: []string{"test-app-1"}}},
+			want: `object != null && (
   (object.metadata.?namespace.orValue("") == "default" && (
-    (object.kind == "Deployment" && (object.metadata.?name.orValue("") != "" ? object.metadata.name : object.metadata.?generateName.orValue("")) == "test-app-1") ||
-    (object.kind in ["ReplicaSet", "Pod"] && (object.metadata.?name.orValue("") != "" ? object.metadata.name : object.metadata.?generateName.orValue("")).startsWith("test-app-1-"))
+    (object.kind == "Deployment" && ` + name + ` == "test-app-1") ||
+    (object.kind in ["ReplicaSet", "Pod"] && ` + name + `.startsWith("test-app-1-"))
   ))
-)`
-	got := translateTargetsToMatchConditions(targets)[0].Expression
-	if got != want {
-		t.Errorf("got:\n%s\nwant:\n%s", got, want)
+)`,
+		},
+		{
+			name: "two targets without namespaces",
+			targets: []policyAPI.Target{
+				{Kind: "Deployment", Names: []string{"web"}},
+				{Kind: "Pod", Names: []string{"debug"}},
+			},
+			want: `object != null && (
+  (
+    (object.kind == "Deployment" && ` + name + ` == "web") ||
+    (object.kind in ["ReplicaSet", "Pod"] && ` + name + `.startsWith("web-"))
+  ) ||
+  (object.kind == "Pod" && ` + name + ` == "debug")
+)`,
+		},
+		{
+			name:    "two exact names",
+			targets: []policyAPI.Target{{Kind: "Pod", Namespaces: []string{"default"}, Names: []string{"app-a", "app-b"}}},
+			want: `object != null && (
+  (object.metadata.?namespace.orValue("") == "default" && object.kind == "Pod" && ` + name + ` in ["app-a", "app-b"])
+)`,
+		},
 	}
-	for _, line := range strings.Split(got, "\n") {
-		if strings.TrimRight(line, " \t") != line {
-			t.Errorf("trailing whitespace in %q", line)
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := translateTargetsToMatchConditions(tt.targets)[0].Expression
+			if got != tt.want {
+				t.Errorf("got:\n%s\nwant:\n%s", got, tt.want)
+			}
+			for _, line := range strings.Split(got, "\n") {
+				if strings.TrimRight(line, " \t") != line {
+					t.Errorf("trailing whitespace in %q", line)
+				}
+			}
+		})
 	}
 }
 
