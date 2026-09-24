@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"reflect"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -13,22 +14,30 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-// A rule that writes its kind as group/version/Kind, such as kyverno-app's
-// restrict-polex-namespaces, still gets the legacy chart-operator bypass.
-func TestClusterPolicyBypassForQualifiedKind(t *testing.T) {
-	ctx := context.Background()
-	s := newScheme(t, kyvernov1.Install, kyvernov2.Install)
-	clusterPolicy := &kyvernov1.ClusterPolicy{
-		ObjectMeta: metav1.ObjectMeta{Name: "restrict-polex-namespaces"},
+func bypassClusterPolicy(name, kind string) *kyvernov1.ClusterPolicy {
+	return &kyvernov1.ClusterPolicy{
+		ObjectMeta: metav1.ObjectMeta{Name: name},
 		Spec: kyvernov1.Spec{Rules: []kyvernov1.Rule{{
-			Name: "restrict-namespaces",
+			Name: "restrict",
 			MatchResources: kyvernov1.MatchResources{Any: kyvernov1.ResourceFilters{{
-				ResourceDescription: kyvernov1.ResourceDescription{Kinds: []string{"kyverno.io/v2/PolicyException"}},
+				ResourceDescription: kyvernov1.ResourceDescription{Kinds: []string{kind}},
 			}}},
-			Validation: &kyvernov1.Validation{Message: "PolicyExceptions are only allowed in some namespaces"},
+			Validation: &kyvernov1.Validation{Message: "restricted"},
 		}}},
 	}
-	c := fake.NewClientBuilder().WithScheme(s).WithObjects(clusterPolicy).Build()
+}
+
+// Every ClusterPolicy that validates a chart-operator exception kind keeps its entry in the legacy
+// bypass, including a rule that writes its kind as group/version/Kind, such as kyverno-app's
+// restrict-polex-namespaces. A deleted ClusterPolicy is left out of the next update.
+func TestClusterPolicyBypass(t *testing.T) {
+	ctx := context.Background()
+	s := newScheme(t, kyvernov1.Install, kyvernov2.Install)
+	c := fake.NewClientBuilder().WithScheme(s).WithObjects(
+		bypassClusterPolicy("restrict-polex-namespaces", "kyverno.io/v2/PolicyException"),
+		bypassClusterPolicy("restrict-namespaces", "Namespace"),
+		bypassClusterPolicy("restrict-pods", "Pod"),
+	).Build()
 	r := &ClusterPolicyReconciler{
 		Client:                      c,
 		Scheme:                      s,
@@ -38,15 +47,38 @@ func TestClusterPolicyBypassForQualifiedKind(t *testing.T) {
 		PolicyCache:                 map[string]kyvernov1.ClusterPolicy{},
 		MaxJitterPercent:            10,
 	}
-	if _, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: types.NamespacedName{Name: clusterPolicy.Name}}); err != nil {
-		t.Fatal(err)
+	reconcile := func(name string) {
+		t.Helper()
+		if _, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: types.NamespacedName{Name: name}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	bypassPolicies := func() []string {
+		t.Helper()
+		var bypass kyvernov2.PolicyException
+		if err := c.Get(ctx, types.NamespacedName{Namespace: ChartOperatorBypassNamespace, Name: ChartOperatorBypassName}, &bypass); err != nil {
+			t.Fatalf("legacy chart-operator bypass not written: %v", err)
+		}
+		var names []string
+		for _, exception := range bypass.Spec.Exceptions {
+			names = append(names, exception.PolicyName)
+		}
+		return names
 	}
 
-	var bypass kyvernov2.PolicyException
-	if err := c.Get(ctx, types.NamespacedName{Namespace: ChartOperatorBypassNamespace, Name: ChartOperatorBypassName}, &bypass); err != nil {
-		t.Fatalf("legacy chart-operator bypass not written: %v", err)
+	for _, name := range []string{"restrict-polex-namespaces", "restrict-namespaces", "restrict-pods"} {
+		reconcile(name)
 	}
-	if len(bypass.Spec.Exceptions) != 1 || bypass.Spec.Exceptions[0].PolicyName != clusterPolicy.Name {
-		t.Errorf("unexpected exceptions %+v", bypass.Spec.Exceptions)
+	if got, want := bypassPolicies(), []string{"restrict-namespaces", "restrict-polex-namespaces"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("bypass policies: got %v, want %v", got, want)
+	}
+
+	if err := c.Delete(ctx, bypassClusterPolicy("restrict-namespaces", "Namespace")); err != nil {
+		t.Fatal(err)
+	}
+	reconcile("restrict-namespaces")
+	reconcile("restrict-polex-namespaces")
+	if got, want := bypassPolicies(), []string{"restrict-polex-namespaces"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("bypass policies after a delete: got %v, want %v", got, want)
 	}
 }
