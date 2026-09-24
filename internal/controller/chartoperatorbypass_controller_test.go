@@ -85,6 +85,26 @@ var _ = Describe("CEL chart-operator bypass", func() {
 		Expect(apierrors.IsNotFound(k8sClient.Get(ctx, key, &bypass))).To(BeTrue())
 	})
 
+	It("recreates a deleted bypass", func() {
+		_, err := r.Reconcile(ctx, ctrl.Request{})
+		Expect(err).NotTo(HaveOccurred())
+		var bypass policiesv1.PolicyException
+		Expect(k8sClient.Get(ctx, key, &bypass)).To(Succeed())
+		DeferCleanup(func() {
+			_ = k8sClient.Delete(ctx, &policiesv1.PolicyException{ObjectMeta: metav1.ObjectMeta{Name: key.Name, Namespace: key.Namespace}})
+		})
+
+		// The controller watches the bypass, so its deletion triggers this reconcile.
+		Expect(k8sClient.Delete(ctx, &bypass)).To(Succeed())
+		Expect(apierrors.IsNotFound(k8sClient.Get(ctx, key, &policiesv1.PolicyException{}))).To(BeTrue())
+		_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+		Expect(err).NotTo(HaveOccurred())
+		var recreated policiesv1.PolicyException
+		Expect(k8sClient.Get(ctx, key, &recreated)).To(Succeed())
+		Expect(recreated.UID).NotTo(Equal(bypass.UID))
+		Expect(recreated.Labels).To(HaveKeyWithValue("policy.giantswarm.io/source", "chart-operator"))
+	})
+
 	It("does not change an unmanaged PolicyException with the bypass name", func() {
 		unmanaged := policiesv1.PolicyException{
 			ObjectMeta: metav1.ObjectMeta{Name: key.Name, Namespace: key.Namespace},

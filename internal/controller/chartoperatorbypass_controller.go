@@ -24,9 +24,12 @@ import (
 	policiesv1 "github.com/kyverno/api/api/policies.kyverno.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 const ChartOperatorBypassName = "chart-operator-generated-sa-bypass"
@@ -96,9 +99,16 @@ func (r *ChartOperatorBypassReconciler) Reconcile(ctx context.Context, _ ctrl.Re
 	return ctrl.Result{}, nil
 }
 
+// isBypass reports whether obj is the bypass PolicyException, so that changing or deleting it
+// rebuilds it right away.
+func (r *ChartOperatorBypassReconciler) isBypass(obj client.Object) bool {
+	return obj.GetName() == ChartOperatorBypassName && obj.GetNamespace() == r.Namespace
+}
+
 func (r *ChartOperatorBypassReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("chartoperatorbypass").
 		For(&policiesv1.ValidatingPolicy{}).
+		Watches(&policiesv1.PolicyException{}, &handler.EnqueueRequestForObject{}, builder.WithPredicates(predicate.NewPredicateFuncs(r.isBypass))).
 		Complete(r)
 }
