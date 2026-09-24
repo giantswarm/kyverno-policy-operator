@@ -194,6 +194,7 @@ func main() {
 		if err = (&controller.ClusterPolicyReconciler{
 			Client:                      mgr.GetClient(),
 			Scheme:                      mgr.GetScheme(),
+			Log:                         ctrl.Log.WithName("clusterpolicy"),
 			ExceptionList:               make(map[string]kyvernov1.ClusterPolicy),
 			ChartOperatorExceptionKinds: chartOperatorExceptionKinds,
 			PolicyCache:                 policyCache,
