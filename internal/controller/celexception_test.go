@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -77,6 +78,7 @@ func TestTargetsMatchConditions(t *testing.T) {
 		{"pod of a similarly named deployment is not exempt", deployment, obj("Pod", "default", "", "test-app-10-5d4f8-"), false},
 		{"pod in another namespace", deployment, obj("Pod", "other", "test-app-1-5d4f8-abcde", ""), false},
 		{"other kind with the same name", deployment, obj("StatefulSet", "default", "test-app-1", ""), false},
+		// Lossy on purpose: the legacy exception also exempts DELETE, but a DELETE has no object.
 		{"delete request has a null object", deployment, nil, false},
 		{"user wildcard", []policyAPI.Target{{Kind: "Deployment", Names: []string{"app-*"}}}, obj("Deployment", "x", "app-foo", ""), true},
 		{"user wildcard is anchored", []policyAPI.Target{{Kind: "Deployment", Names: []string{"app-*"}}}, obj("Deployment", "x", "myapp-foo", ""), false},
@@ -111,6 +113,35 @@ func TestTargetsMatchConditions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := eval(t, translateTargetsToMatchConditions(tt.targets), tt.object, nil); got != tt.want {
 				t.Errorf("got %v, want %v; expression: %s", got, tt.want, translateTargetsToMatchConditions(tt.targets)[0].Expression)
+			}
+		})
+	}
+}
+
+// TestLossyTranslations lists the objects the legacy exception of the same gspolex exempts
+// through its "name*" patterns, but the CEL exception does not. The CEL matching is stricter on
+// purpose.
+func TestLossyTranslations(t *testing.T) {
+	long := strings.Repeat("a", 70)
+	tests := []struct {
+		name        string
+		target      policyAPI.Target
+		object      any
+		legacyNames []string
+	}{
+		{"deployment with a longer name", policyAPI.Target{Kind: "Deployment", Names: []string{"test-app-1"}}, obj("Deployment", "x", "test-app-10", ""), []string{"test-app-1*"}},
+		{"pod of a deployment with a longer name", policyAPI.Target{Kind: "Deployment", Names: []string{"test-app-1"}}, obj("Pod", "x", "", "test-app-10-5d4f8-"), []string{"test-app-1*"}},
+		{"long name that differs after character 58", policyAPI.Target{Kind: "Deployment", Names: []string{long}}, obj("Deployment", "x", long[:58]+"zz", ""), []string{long[:58] + "*"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			targets := []policyAPI.Target{tt.target}
+			if got := eval(t, translateTargetsToMatchConditions(targets), tt.object, nil); got {
+				t.Errorf("the CEL exception exempts %v", tt.object)
+			}
+			legacy := translateTargetsToResourceFilters(targets)[0].Names
+			if !reflect.DeepEqual(legacy, tt.legacyNames) {
+				t.Errorf("legacy names: got %v, want %v", legacy, tt.legacyNames)
 			}
 		})
 	}
