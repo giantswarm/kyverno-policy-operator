@@ -94,6 +94,10 @@ func TestTargetsMatchConditions(t *testing.T) {
 		{"user wildcard is anchored", []policyAPI.Target{{Kind: "Deployment", Names: []string{"app-*"}}}, obj("Deployment", "x", "myapp-foo", ""), false},
 		{"pod of a user wildcard target", []policyAPI.Target{{Kind: "Deployment", Names: []string{"app-*"}}}, obj("Pod", "x", "", "app-foo-5d4f8-"), true},
 		{"pod outside a user wildcard target", []policyAPI.Target{{Kind: "Deployment", Names: []string{"app-*"}}}, obj("Pod", "x", "other-x", ""), false},
+		{"quote and backslash in a name are literal", []policyAPI.Target{{Kind: "Deployment", Names: []string{`a"b\c`}}}, obj("Deployment", "x", `a"b\c`, ""), true},
+		{"quote and backslash in a name match nothing else", []policyAPI.Target{{Kind: "Deployment", Names: []string{`a"b\c`}}}, obj("Deployment", "x", `a"bc`, ""), false},
+		{"quote and backslash in a wildcard name are literal", []policyAPI.Target{{Kind: "Deployment", Names: []string{`a"b\?`}}}, obj("Deployment", "x", `a"b\c`, ""), true},
+		{"quote and backslash in a prefix name are literal", []policyAPI.Target{{Kind: "Pod", Names: []string{`a"b\`}}}, obj("Pod", "x", `a"b\c`, ""), true},
 		{"regex metacharacters are literal", []policyAPI.Target{{Kind: "Deployment", Names: []string{"a.b"}}}, obj("Deployment", "x", "axb", ""), false},
 		{"long target name matches exactly", []policyAPI.Target{{Kind: "Deployment", Names: []string{long}}}, obj("Deployment", "x", long, ""), true},
 		{"pods of long names use the truncated prefix", []policyAPI.Target{{Kind: "Deployment", Names: []string{long}}}, obj("Pod", "x", "", long[:58]), true},
@@ -392,6 +396,7 @@ func TestMatchConditionsCompileInKyvernoEnv(t *testing.T) {
 		"targets":        translateTargetsToMatchConditions([]policyAPI.Target{{Kind: "Deployment", Namespaces: []string{"default", "team-*"}, Names: []string{"a", "b-*", "c?d"}}}, false),
 		"namespaces":     translateTargetsToMatchConditions([]policyAPI.Target{{Kind: "Namespace", Namespaces: []string{"team-a", "team-*"}}}, false),
 		"kind formats":   translateTargetsToMatchConditions([]policyAPI.Target{{Kind: "apps/v1/Deployment"}, {Kind: "v1/Pod"}, {Kind: "/v*/Pod"}, {Kind: "*"}, {Kind: "Deploy*"}}, false),
+		"escaping":       translateTargetsToMatchConditions([]policyAPI.Target{{Kind: "Deployment", Namespaces: []string{`n"s\`}, Names: []string{`a"b\c`, `a"b\?`}}, {Kind: "Pod", Names: []string{`a"b\`}}}, false),
 		"no targets":     translateTargetsToMatchConditions(nil, false),
 		"chart-operator": chartOperatorMatchConditions([]string{"Namespace"}),
 	} {
