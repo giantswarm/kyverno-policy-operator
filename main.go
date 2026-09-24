@@ -162,6 +162,7 @@ func main() {
 	if err = (&controller.PolicyExceptionReconciler{
 		Client:               mgr.GetClient(),
 		Scheme:               mgr.GetScheme(),
+		Log:                  ctrl.Log.WithName("policyexception"),
 		DestinationNamespace: destinationNamespace,
 		Background:           backgroundMode,
 		LegacyMode:           legacyMode,
@@ -179,6 +180,7 @@ func main() {
 		if err = (&controller.PolicyManifestReconciler{
 			Client:               mgr.GetClient(),
 			Scheme:               mgr.GetScheme(),
+			Log:                  ctrl.Log.WithName("policymanifest"),
 			DestinationNamespace: destinationNamespace,
 			Background:           backgroundMode,
 			PolicyCache:          policyCache,
