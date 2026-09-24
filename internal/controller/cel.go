@@ -34,6 +34,9 @@ func (r *PolicyExceptionReconciler) reconcileCEL(ctx context.Context, gspolex *p
 	if len(unresolved) > 0 {
 		logger.V(1).Info("unresolved policy names", "policies", unresolved)
 	}
+	if unsupported := unsupportedTargetKinds(gspolex.Spec.Targets); len(unsupported) > 0 {
+		logger.Info("target kinds a CEL exception cannot express are left out", "kinds", unsupported)
+	}
 
 	celException := policiesv1.PolicyException{ObjectMeta: metav1.ObjectMeta{Name: gspolex.Name, Namespace: namespace}}
 	if len(refs) == 0 {

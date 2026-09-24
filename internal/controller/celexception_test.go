@@ -58,6 +58,12 @@ func obj(kind, namespace, name, generateName string) map[string]any {
 	return map[string]any{"kind": kind, "metadata": md}
 }
 
+// withAPIVersion sets the apiVersion of an object built by obj.
+func withAPIVersion(o map[string]any, apiVersion string) map[string]any {
+	o["apiVersion"] = apiVersion
+	return o
+}
+
 func TestTargetsMatchConditions(t *testing.T) {
 	long := strings.Repeat("a", 70)
 	deployment := []policyAPI.Target{{Kind: "Deployment", Namespaces: []string{"default"}, Names: []string{"test-app-1"}}}
@@ -65,6 +71,9 @@ func TestTargetsMatchConditions(t *testing.T) {
 	middleGlob := []policyAPI.Target{{Kind: "Deployment", Names: []string{"app-*-web"}}}
 	singleChar := []policyAPI.Target{{Kind: "Deployment", Names: []string{"a?c"}}}
 	mixed := []policyAPI.Target{{Kind: "Deployment", Names: []string{"api", "worker", "web-*", "db-?-x"}}}
+	gvk := []policyAPI.Target{{Kind: "apps/v1/Deployment", Names: []string{"app"}}}
+	versionKind := []policyAPI.Target{{Kind: "v1/Pod", Names: []string{"p"}}}
+	anyKind := []policyAPI.Target{{Kind: "*", Names: []string{"app"}}}
 	tests := []struct {
 		name    string
 		targets []policyAPI.Target
@@ -106,6 +115,21 @@ func TestTargetsMatchConditions(t *testing.T) {
 		{"mixed names: trailing wildcard", mixed, obj("Deployment", "x", "web-1", ""), true},
 		{"mixed names: middle glob", mixed, obj("Deployment", "x", "db-a-x", ""), true},
 		{"mixed names: none", mixed, obj("Deployment", "x", "db-ab-x", ""), false},
+		{"group/version/kind", gvk, withAPIVersion(obj("Deployment", "x", "app", ""), "apps/v1"), true},
+		{"group/version/kind in another group", gvk, withAPIVersion(obj("Deployment", "x", "app", ""), "extensions/v1beta1"), false},
+		{"replicaset of a group/version/kind target", gvk, withAPIVersion(obj("ReplicaSet", "x", "app-5d4f8", ""), "apps/v1"), true},
+		{"pod of a group/version/kind target", gvk, withAPIVersion(obj("Pod", "x", "", "app-5d4f8-"), "v1"), true},
+		{"version/kind in the core group", versionKind, withAPIVersion(obj("Pod", "x", "p", ""), "v1"), true},
+		{"version/kind in any group", versionKind, withAPIVersion(obj("Pod", "x", "p", ""), "example.com/v1"), true},
+		{"version/kind with another version", versionKind, withAPIVersion(obj("Pod", "x", "p", ""), "v2"), false},
+		{"wildcard version", []policyAPI.Target{{Kind: "apps/*/Deployment", Names: []string{"app"}}}, withAPIVersion(obj("Deployment", "x", "app", ""), "apps/v1"), true},
+		{"any kind", anyKind, withAPIVersion(obj("ConfigMap", "x", "app", ""), "v1"), true},
+		{"any kind, other name", anyKind, withAPIVersion(obj("ConfigMap", "x", "other", ""), "v1"), false},
+		{"pods of an any-kind target", anyKind, obj("Pod", "x", "", "app-5d4f8-"), true},
+		{"any kind without names or namespaces", []policyAPI.Target{{Kind: "*"}}, obj("Secret", "x", "s", ""), true},
+		{"kind wildcard", []policyAPI.Target{{Kind: "Deploy*", Names: []string{"app"}}}, obj("Deployment", "x", "app", ""), true},
+		{"subresource target is left out", []policyAPI.Target{{Kind: "Pod/exec", Names: []string{"p"}}}, obj("Pod", "x", "p", ""), false},
+		{"other targets still match next to a subresource target", []policyAPI.Target{{Kind: "Pod/exec"}, {Kind: "Pod", Names: []string{"p"}}}, obj("Pod", "x", "p", ""), true},
 		{"object without a namespace field", []policyAPI.Target{{Kind: "Namespace", Names: []string{"team-a"}}}, map[string]any{"kind": "Namespace", "metadata": map[string]any{"name": "team-a"}}, true},
 		{"namespace filter on an object without a namespace field", []policyAPI.Target{{Kind: "Namespace", Namespaces: []string{"x"}}}, map[string]any{"kind": "Namespace", "metadata": map[string]any{"name": "team-a"}}, false},
 	}
@@ -147,6 +171,14 @@ func TestLossyTranslations(t *testing.T) {
 	}
 }
 
+func TestUnsupportedTargetKinds(t *testing.T) {
+	targets := []policyAPI.Target{{Kind: "Pod"}, {Kind: "Pod/exec"}, {Kind: "v1/Pod/log"}, {Kind: "*/*"}, {Kind: "apps/v1/Deployment"}, {Kind: ""}}
+	want := []string{"Pod/exec", "v1/Pod/log", "*/*", ""}
+	if got := unsupportedTargetKinds(targets); !reflect.DeepEqual(got, want) {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
 // TestTargetsMatchConditionsFormat pins the generated layout so that it stays readable in kubectl.
 func TestTargetsMatchConditionsFormat(t *testing.T) {
 	const name = `(object.metadata.?name.orValue("") != "" ? object.metadata.name : object.metadata.?generateName.orValue(""))`
@@ -178,6 +210,38 @@ func TestTargetsMatchConditionsFormat(t *testing.T) {
   ) ||
   (object.kind == "Pod" && ` + name + ` == "debug")
 )`,
+		},
+		{
+			name:    "group/version/kind",
+			targets: []policyAPI.Target{{Kind: "apps/v1/Deployment", Names: []string{"web"}}},
+			want: `object != null && (
+  (
+    (object.apiVersion == "apps/v1" && object.kind == "Deployment" && ` + name + ` == "web") ||
+    (object.kind in ["ReplicaSet", "Pod"] && ` + name + `.startsWith("web-"))
+  )
+)`,
+		},
+		{
+			name:    "version/kind",
+			targets: []policyAPI.Target{{Kind: "v1/Pod", Namespaces: []string{"default"}}},
+			want: `object != null && (
+  (object.metadata.?namespace.orValue("") == "default" && (object.apiVersion == "v1" || object.apiVersion.matches("^.*/v1$")) && object.kind == "Pod")
+)`,
+		},
+		{
+			name:    "any kind",
+			targets: []policyAPI.Target{{Kind: "*", Names: []string{"web"}}},
+			want: `object != null && (
+  (
+    (` + name + ` == "web") ||
+    (object.kind == "Pod" && ` + name + `.startsWith("web-"))
+  )
+)`,
+		},
+		{
+			name:    "a subresource target is left out",
+			targets: []policyAPI.Target{{Kind: "Pod/exec", Names: []string{"web"}}},
+			want:    `false`,
 		},
 		{
 			name:    "two exact names",
@@ -260,6 +324,7 @@ func TestMatchConditionsCompileInKyvernoEnv(t *testing.T) {
 	env := kyvernoExceptionEnv(t)
 	for name, conds := range map[string][]admissionregistrationv1.MatchCondition{
 		"targets":        translateTargetsToMatchConditions([]policyAPI.Target{{Kind: "Deployment", Namespaces: []string{"default", "team-*"}, Names: []string{"a", "b-*", "c?d"}}}),
+		"kind formats":   translateTargetsToMatchConditions([]policyAPI.Target{{Kind: "apps/v1/Deployment"}, {Kind: "v1/Pod"}, {Kind: "*"}, {Kind: "Deploy*"}}),
 		"no targets":     translateTargetsToMatchConditions(nil),
 		"chart-operator": chartOperatorMatchConditions([]string{"Namespace"}),
 	} {

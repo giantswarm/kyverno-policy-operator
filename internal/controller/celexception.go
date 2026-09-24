@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
+	kubeutils "github.com/kyverno/kyverno/pkg/utils/kube"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 )
 
@@ -25,34 +26,78 @@ const objectNamespace = `object.metadata.?namespace.orValue("")`
 // translateTargetsToMatchConditions turns gspolex targets into one CEL match condition that is true
 // when any target matches, with one target per line. A null object (DELETE) never matches, and no
 // targets match nothing: an exception without match conditions would exempt every resource.
+// Targets with a subresource kind are left out, see unsupportedTargetKinds.
 func translateTargetsToMatchConditions(targets []policyAPI.Target) []admissionregistrationv1.MatchCondition {
-	expression := "false"
-	if len(targets) > 0 {
-		parts := make([]string, 0, len(targets))
-		for _, target := range targets {
-			parts = append(parts, targetExpression(target))
+	parts := make([]string, 0, len(targets))
+	for _, target := range targets {
+		if expression, ok := targetExpression(target); ok {
+			parts = append(parts, expression)
 		}
+	}
+	expression := "false"
+	if len(parts) > 0 {
 		expression = "object != null && (\n" + indent(strings.Join(parts, " ||\n")) + "\n)"
 	}
 	return []admissionregistrationv1.MatchCondition{{Name: TargetsMatchConditionName, Expression: expression}}
 }
 
+// unsupportedTargetKinds lists the target kinds a CEL exception cannot express: a subresource such
+// as "Pod/exec", or an empty kind.
+func unsupportedTargetKinds(targets []policyAPI.Target) []string {
+	var kinds []string
+	for _, target := range targets {
+		if _, ok := targetExpression(target); !ok {
+			kinds = append(kinds, target.Kind)
+		}
+	}
+	return kinds
+}
+
 // targetExpression matches the target kind by its exact name (or the user's wildcard pattern), and
 // the kinds its controller creates by "<name>-" prefix, because those carry generated names.
-// Missing namespaces or names match any.
-func targetExpression(target policyAPI.Target) string {
-	kinds := generateExceptionKinds(target.Kind)
+// The kind uses Kyverno's format: "Kind", "version/Kind" or "group/version/Kind", each part may be
+// a wildcard, and "*" is any kind. Missing namespaces or names match any. It reports false for a
+// kind it cannot express.
+func targetExpression(target policyAPI.Target) (string, bool) {
+	group, version, kind, subresource := kubeutils.ParseKindSelector(target.Kind)
+	if kind == "" || subresource != "" {
+		return "", false
+	}
+	kinds := generateExceptionKinds(kind)
 	namespace := anyPattern(objectNamespace, target.Namespaces)
-	own := allOf(oneOf("object.kind", kinds[:1]), anyPattern(objectName, target.Names))
+	own := allOf(apiVersionPattern(group, version), kindPattern(kind), anyPattern(objectName, target.Names))
 	if len(kinds) == 1 {
-		return "(" + allOf(namespace, own) + ")"
+		return "(" + allOf(namespace, own) + ")", true
 	}
 	derived := allOf(oneOf("object.kind", kinds[1:]), anyPattern(objectName, derivedPatterns(target.Names)))
 	clause := "(\n  (" + own + ") ||\n  (" + derived + ")\n)"
 	if namespace == "" {
-		return clause
+		return clause, true
 	}
-	return "(" + namespace + " && " + clause + ")"
+	return "(" + namespace + " && " + clause + ")", true
+}
+
+// kindPattern matches object.kind, or any kind for "*".
+func kindPattern(kind string) string {
+	if kind == "*" {
+		return ""
+	}
+	return anyPattern("object.kind", []string{kind})
+}
+
+// apiVersionPattern matches object.apiVersion for a Kyverno group and version. A "*" group also
+// matches the core group, whose apiVersion has no group part.
+func apiVersionPattern(group, version string) string {
+	switch {
+	case group == "*" && version == "*":
+		return ""
+	case group == "*":
+		return anyPattern("object.apiVersion", []string{version, "*/" + version})
+	case group == "":
+		return anyPattern("object.apiVersion", []string{version})
+	default:
+		return anyPattern("object.apiVersion", []string{group + "/" + version})
+	}
 }
 
 // derivedPatterns turns target names into patterns for the objects their controllers create.
@@ -112,13 +157,16 @@ func oneOf(value string, values []string) string {
 	return fmt.Sprintf("%s in [%s]", value, quoteAll(values))
 }
 
-// allOf joins the non-empty clauses with &&.
+// allOf joins the non-empty clauses with &&, and is true when there are none.
 func allOf(clauses ...string) string {
 	nonEmpty := make([]string, 0, len(clauses))
 	for _, clause := range clauses {
 		if clause != "" {
 			nonEmpty = append(nonEmpty, clause)
 		}
+	}
+	if len(nonEmpty) == 0 {
+		return "true"
 	}
 	return strings.Join(nonEmpty, " && ")
 }

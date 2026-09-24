@@ -90,6 +90,11 @@ kind matches the name exactly, or the `*`/`?` wildcard pattern the user wrote. T
 controller creates (ReplicaSet, Job, Pod) match the `<name>-` prefix, so a target `app-1` no longer
 covers the pods of `app-10`. The `kyverno.io/v2` PolicyException keeps the old `name*` matching.
 
+Target kinds use Kyverno's format. `Deployment` matches the kind in any API group,
+`apps/v1/Deployment` also checks `apiVersion`, `v1/Pod` matches version `v1` in any group, parts can
+be wildcards, and `*` matches any kind. A kind with a subresource, such as `Pod/exec`, cannot be
+expressed in a CEL exception: that target is left out, and the operator logs it.
+
 Both generated exceptions are labelled `app.kubernetes.io/managed-by: kyverno-policy-operator` and
 `policy.giantswarm.io/source: gspolex|exception-recommender|chart-operator`. The operator only ever
 deletes a PolicyException that carries the `managed-by` label; one created by hand or by another
