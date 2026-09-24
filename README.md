@@ -98,8 +98,8 @@ The `policies.kyverno.io/v1` PolicyException turns the gspolex targets into one 
 It matches more strictly than the `kyverno.io/v2` one, which keeps the old `name*` matching:
 
 - **Names.** Objects of the target kind match a name exactly, or the `*`/`?` wildcard pattern the
-  user wrote. `Pod`, `ReplicaSet` and `Job` targets match by prefix instead, like the legacy
-  `name*` (cut to 58 characters), because these usually carry generated names.
+  user wrote. `Pod`, `ReplicaSet` and `Job` targets use the legacy patterns instead, because these
+  usually carry generated names: every name is cut to 58 characters and gets a trailing `*`.
 - **Derived kinds.** The kinds a target's controller creates (ReplicaSet and Pod for a Deployment,
   Job and Pod for a CronJob, and Pod for any other kind but Pod) match the `<name>-` prefix, so a
   target `app-1` no longer covers the pods of `app-10`.

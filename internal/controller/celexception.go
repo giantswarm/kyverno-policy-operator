@@ -104,23 +104,12 @@ func apiVersionPattern(group, version string) string {
 
 // ownPatterns returns the patterns a target's names match for the target kind itself: the exact
 // name, or the user's wildcard pattern. Pods, ReplicaSets and Jobs usually carry generated names,
-// so their names match by prefix, cut to 58 characters like the legacy "name*".
+// so their names use the legacy patterns: cut to 58 characters, with a trailing "*".
 func ownPatterns(kind string, names []string) []string {
 	if kind != KindPod && kind != KindReplicaSet && kind != KindJob {
 		return names
 	}
-	patterns := make([]string, 0, len(names))
-	for _, name := range names {
-		if strings.ContainsAny(name, "*?") {
-			patterns = append(patterns, name)
-			continue
-		}
-		if len(name) > MaxNameLength {
-			name = truncateName(name)
-		}
-		patterns = append(patterns, name+"*")
-	}
-	return patterns
+	return formatNames(names)
 }
 
 // derivedPatterns turns target names into patterns for the objects their controllers create.
