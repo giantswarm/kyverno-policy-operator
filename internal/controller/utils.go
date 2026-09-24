@@ -3,6 +3,8 @@ package controller
 import (
 	"context"
 	stderrors "errors"
+	"slices"
+	"strings"
 	"time"
 
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
@@ -228,43 +230,28 @@ func generatePolicyRules(kyvernoPolicy kyvernov1.ClusterPolicy) []string {
 	return rulesArray
 }
 
-// unorderedEqual takes two Kyverno Exception arrays and checks if they are equal even if they are not ordered the same
+// unorderedEqual reports whether two exception lists hold the same policies and rules, in any order.
 func unorderedEqual(got, want []kyvernov2.Exception) bool {
-	// Check Length size first
 	if len(got) != len(want) {
 		return false
 	}
-	// Create an exceptions map with the new desired Exceptions
-	exceptionMap := make(map[string][]string)
-	for _, exception := range want {
-		exceptionMap[exception.PolicyName] = exception.RuleNames
-	}
-	for _, exception := range got {
-		// Check if the Policy Name is still present in the new Exceptions, with as many rules
-		if rules, exists := exceptionMap[exception.PolicyName]; !exists || len(rules) != len(exception.RuleNames) {
-			// The Policy is not present in the new array, or its rules were added or removed
-			// Arrays are not equals, exit
+	got, want = sortedExceptions(got), sortedExceptions(want)
+	for i := range got {
+		if got[i].PolicyName != want[i].PolicyName || !slices.Equal(got[i].RuleNames, want[i].RuleNames) {
 			return false
-		} else {
-			// Check if the same RuleNames are still present in the new Exceptions
-			for _, oldRule := range exception.RuleNames {
-				found := false
-				// Check against every rule, exit if found
-				for _, newRule := range exceptionMap[exception.PolicyName] {
-					if newRule == oldRule {
-						// Found, break for
-						found = true
-						break
-					}
-				}
-				if !found {
-					// The arrays are not equals, exit
-					return false
-				}
-				// Rules are equals, continue
-			}
 		}
 	}
-	// Arrays are equals
 	return true
+}
+
+// sortedExceptions returns a copy sorted by policy name, with sorted rule names.
+func sortedExceptions(exceptions []kyvernov2.Exception) []kyvernov2.Exception {
+	sorted := make([]kyvernov2.Exception, 0, len(exceptions))
+	for _, exception := range exceptions {
+		rules := slices.Clone(exception.RuleNames)
+		slices.Sort(rules)
+		sorted = append(sorted, kyvernov2.Exception{PolicyName: exception.PolicyName, RuleNames: rules})
+	}
+	slices.SortStableFunc(sorted, func(a, b kyvernov2.Exception) int { return strings.Compare(a.PolicyName, b.PolicyName) })
+	return sorted
 }

@@ -57,6 +57,9 @@ func TestUnorderedEqual(t *testing.T) {
 		{"rule added, for example by autogen", one, []kyvernov2.Exception{{PolicyName: "p", RuleNames: []string{"a", "autogen-a"}}}, false},
 		{"rule removed", []kyvernov2.Exception{{PolicyName: "p", RuleNames: []string{"a", "b"}}}, one, false},
 		{"other policy", one, []kyvernov2.Exception{{PolicyName: "q", RuleNames: []string{"a"}}}, false},
+		{"reordered policies", []kyvernov2.Exception{{PolicyName: "p", RuleNames: []string{"a"}}, {PolicyName: "q"}}, []kyvernov2.Exception{{PolicyName: "q"}, {PolicyName: "p", RuleNames: []string{"a"}}}, true},
+		{"duplicate policy", []kyvernov2.Exception{{PolicyName: "p", RuleNames: []string{"a"}}, {PolicyName: "p", RuleNames: []string{"a"}}}, []kyvernov2.Exception{{PolicyName: "p", RuleNames: []string{"a"}}, {PolicyName: "q", RuleNames: []string{"a"}}}, false},
+		{"duplicate rule", []kyvernov2.Exception{{PolicyName: "p", RuleNames: []string{"a", "a"}}}, []kyvernov2.Exception{{PolicyName: "p", RuleNames: []string{"a", "b"}}}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
