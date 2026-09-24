@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Replace the deprecated `Result.Requeue` field with `RequeueAfter`. A PolicyManifest whose ClusterPolicy is not cached yet now retries after 10s instead of relying on the deprecated immediate-requeue flag.
 - Fix failing `pre-commit` CI check on `main` by replacing the deprecated Kyverno `AddToScheme` scheme registrations with `Install`, and asserting on `Result.RequeueAfter` instead of the deprecated `Result.Requeue` in controller tests.
+- Legacy `kyverno.io/v2` PolicyExceptions pick up rules added to a ClusterPolicy, including `status.autogen` rules, as soon as the ClusterPolicy changes.
+- Create the legacy chart-operator bypass for ClusterPolicy rules that write their kind as `group/version/Kind`, such as `kyverno.io/v2/PolicyException`.
+- Log the ClusterPolicy controller's messages, which were dropped.
 
 ### Changed
 
@@ -21,7 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Add `.golangci.yml` so `goconst` does not flag repeated fixture strings in table-driven tests.
-- Write a `policies.kyverno.io/v1` PolicyException next to the `kyverno.io/v2` one per Giant Swarm PolicyException, plus a CEL chart-operator bypass, so exceptions survive the move to ValidatingPolicy. It matches target names exactly, and their pods by `<name>-` prefix, understands Kyverno's `group/version/Kind` and `*` kinds, and never changes a `policies.kyverno.io` PolicyException it did not create. Subresource kinds such as `Pod/exec` are left out. New `--legacy-exceptions` switch (Helm `policyOperator.legacyExceptions`); the operator starts without the legacy Kyverno CRDs. Adds migration metrics, reported as 0 when empty, and a `monitoring.podMonitor`.
+- Write a `policies.kyverno.io/v1` PolicyException next to the `kyverno.io/v2` one per Giant Swarm PolicyException, plus a CEL chart-operator bypass, so exceptions survive the move to ValidatingPolicy. The README describes how targets match. New `--legacy-exceptions` switch (Helm `policyOperator.legacyExceptions`); the operator starts without the legacy Kyverno CRDs. Adds migration metrics and a `monitoring.podMonitor`.
+- The CEL match conditions use optional field syntax, so they need Kubernetes 1.28 or newer wherever Kyverno generates ValidatingAdmissionPolicies.
 
 ## [0.2.3] - 2026-07-30
 

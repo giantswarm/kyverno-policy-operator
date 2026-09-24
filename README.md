@@ -75,25 +75,60 @@ Kyverno is moving policies from `kyverno.io/v1` ClusterPolicies to CEL-based Pol
 through that migration, the operator writes up to two Kyverno PolicyExceptions per Giant Swarm
 PolicyException, both named after it:
 
-- `kyverno.io/v2`, listing only the policies that still exist as ClusterPolicies. Written only while
-  `--legacy-exceptions` is enabled, and skipped (and deleted, if it exists) for a gspolex already
-  migrated by `exception-recommender`, i.e. one carrying `policy.giantswarm.io/migrated-from`.
+- `kyverno.io/v2`, listing the policies that exist as ClusterPolicies, with their rules. Written only
+  while `--legacy-exceptions` is enabled, and skipped (and deleted, if it exists) for a migrated
+  gspolex (see below).
 - `policies.kyverno.io/v1`, listing every policy. The policy's kind is resolved from the cluster
   (`ValidatingPolicy`, `MutatingPolicy` or `ImageValidatingPolicy`); when no matching CEL policy
   exists yet, it falls back to `ValidatingPolicy` and the name is recorded as unresolved.
 
+When a ClusterPolicy is deleted, for example while it is being replaced, the `kyverno.io/v2`
+PolicyException keeps its entry for that policy, with the rules it had, until the ClusterPolicy is
+back. It is never deleted just because its ClusterPolicies are missing, only when legacy exceptions
+are switched off, the gspolex is migrated or deleted, or the gspolex lists none of the policies it
+has entries for. The operator watches ClusterPolicies, so a new rule or `status.autogen` change is
+picked up right away.
+
 `--background-mode` (Helm `policyOperator.exceptionBackgroundMode`) only applies to the
 `kyverno.io/v2` PolicyExceptions; `policies.kyverno.io/v1` PolicyExceptions have no such setting.
 
-Target names are matched more strictly in the `policies.kyverno.io/v1` PolicyException. The target
-kind matches the name exactly, or the `*`/`?` wildcard pattern the user wrote. The kinds its
-controller creates (ReplicaSet, Job, Pod) match the `<name>-` prefix, so a target `app-1` no longer
-covers the pods of `app-10`. The `kyverno.io/v2` PolicyException keeps the old `name*` matching.
+### How CEL exceptions match targets
 
-Target kinds use Kyverno's format. `Deployment` matches the kind in any API group,
-`apps/v1/Deployment` also checks `apiVersion`, `v1/Pod` matches version `v1` in any group, parts can
-be wildcards, and `*` matches any kind. A kind with a subresource, such as `Pod/exec`, cannot be
-expressed in a CEL exception: that target is left out, and the operator logs it.
+The `policies.kyverno.io/v1` PolicyException turns the gspolex targets into one CEL match condition.
+It matches more strictly than the `kyverno.io/v2` one, which keeps the old `name*` matching:
+
+- **Names.** Objects of the target kind match a name exactly, or the `*`/`?` wildcard pattern the
+  user wrote. `Pod`, `ReplicaSet` and `Job` targets match by prefix instead, like the legacy
+  `name*` (cut to 58 characters), because these usually carry generated names.
+- **Derived kinds.** The kinds a target's controller creates (ReplicaSet and Pod for a Deployment,
+  Job and Pod for a CronJob, and Pod for any other kind but Pod) match the `<name>-` prefix, so a
+  target `app-1` no longer covers the pods of `app-10`.
+- **Namespaces.** A target's `namespaces` are compared with the object's namespace, and for a
+  `Namespace` object with its name, as Kyverno does. A `Namespace` target with
+  `namespaces: [team-a]` matches the Namespace `team-a`.
+- **Kinds** use Kyverno's format. `Deployment` matches the kind in any API group,
+  `apps/v1/Deployment` also checks `apiVersion`, `v1/Pod` matches version `v1` in any group, parts
+  can be wildcards, `/v1/Pod` means the core group only, and `*` matches any kind. A wildcard group
+  is only possible through the bare `Kind` or `version/Kind` forms: `apps/Deployment` and
+  `*/v1/Deployment` parse as subresources and are left out. A kind with a subresource, such as
+  `Pod/exec`, cannot be expressed in a CEL exception: that target is left out, and the operator
+  logs it.
+- **DELETE requests never match**, because a CEL exception sees a null `object` for them. When
+  converting a legacy rule without `operations` to a CEL policy, list `CREATE` and `UPDATE`
+  explicitly, so that DELETE requests are not validated.
+
+The match conditions use CEL optional field syntax (`?field.orValue`), so they need Kubernetes 1.28
+or newer wherever Kyverno turns ValidatingPolicies into ValidatingAdmissionPolicies.
+
+### Migrated gspolexes
+
+`exception-recommender` migrates legacy PolicyExceptions into gspolexes. A gspolex counts as
+migrated only when it has both the `policy.giantswarm.io/migrated-from` annotation and the
+`app.kubernetes.io/managed-by: exception-recommender` label. Its targets already list every kind the
+legacy exception covered, so its CEL exception matches exactly those kinds and names, with no
+derived kinds. It gets no `kyverno.io/v2` PolicyException.
+
+### Labels and annotations
 
 Both generated exceptions are labelled `app.kubernetes.io/managed-by: kyverno-policy-operator` and
 `policy.giantswarm.io/source: gspolex|exception-recommender|chart-operator`. The operator only ever
@@ -104,15 +139,17 @@ label: if one already has the generated name, the operator logs an error and cou
 
 The generated `policies.kyverno.io/v1` PolicyException can also carry two annotations:
 
-- `policy.giantswarm.io/migrated-from`: copied from the Giant Swarm PolicyException when it was
-  produced by `exception-recommender` from a legacy PolicyException (see above).
+- `policy.giantswarm.io/migrated-from`: copied from the Giant Swarm PolicyException.
 - `policy.giantswarm.io/unresolved-policies`: a comma-separated list of policy names that matched no
   CEL policy kind yet.
+
+### chart-operator bypass
 
 A separate `policies.kyverno.io/v1` PolicyException, `chart-operator-generated-sa-bypass` in the
 `giantswarm` namespace, exempts chart-operator's CREATE and UPDATE of the configured
 `policyOperator.chartOperatorExceptionKinds` from every `ValidatingPolicy` in the cluster, mirroring
-the legacy ClusterPolicy bypass.
+the legacy ClusterPolicy bypass. The operator watches it, so a deleted or changed bypass is rebuilt
+right away.
 
 ### `--legacy-exceptions`
 
@@ -142,7 +179,8 @@ The operator exposes Prometheus metrics on the metrics endpoint (scraped by
 - `kyverno_policy_operator_unresolved_policy_refs{policy}`: generated CEL exceptions referencing a
   policy name that currently matches no CEL policy.
 - `kyverno_policy_operator_generation_errors_total{api,reason}`: errors writing or deleting generated
-  PolicyExceptions (`reason`: `lookup_failed`, `apply_failed`, `delete_failed`, `name_taken`).
+  PolicyExceptions (`reason`: `lookup_failed`, `apply_failed`, `delete_failed`, and for `cel` only,
+  `name_taken`).
 
 The gauges report `0` for every source they counted and found none of, and every error series
 starts at `0`. The `legacy` and dual gauges are missing while the legacy CRDs are absent or the
