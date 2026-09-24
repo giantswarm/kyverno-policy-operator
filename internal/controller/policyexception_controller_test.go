@@ -239,11 +239,25 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 	Context("When the gspolex was migrated by exception-recommender", func() {
 		It("does not write a legacy exception", func() {
 			gsPolicyException.Annotations = map[string]string{"policy.giantswarm.io/migrated-from": "team-a/foo"}
+			gsPolicyException.Labels = map[string]string{"app.kubernetes.io/managed-by": "exception-recommender"}
 			Expect(k8sClient.Update(ctx, &gsPolicyException)).To(Succeed())
 			_, err := r.Reconcile(ctx, req)
 			Expect(err).NotTo(HaveOccurred())
 			err = k8sClient.Get(ctx, req.NamespacedName, &kyvernov2.PolicyException{})
 			Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		})
+	})
+
+	Context("When the gspolex has the migrated-from annotation but not exception-recommender's label", func() {
+		It("writes the legacy exception and marks the CEL exception as gspolex", func() {
+			gsPolicyException.Annotations = map[string]string{"policy.giantswarm.io/migrated-from": "team-a/foo"}
+			Expect(k8sClient.Update(ctx, &gsPolicyException)).To(Succeed())
+			_, err := r.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(k8sClient.Get(ctx, req.NamespacedName, &kyvernov2.PolicyException{})).To(Succeed())
+			var celException policiesv1.PolicyException
+			Expect(k8sClient.Get(ctx, req.NamespacedName, &celException)).To(Succeed())
+			Expect(celException.Labels).To(HaveKeyWithValue("policy.giantswarm.io/source", "gspolex"))
 		})
 	})
 
@@ -306,6 +320,7 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 
 		It("marks exceptions migrated by exception-recommender", func() {
 			gsPolicyException.Annotations = map[string]string{"policy.giantswarm.io/migrated-from": "team-a/foo"}
+			gsPolicyException.Labels = map[string]string{"app.kubernetes.io/managed-by": "exception-recommender"}
 			Expect(k8sClient.Update(ctx, &gsPolicyException)).To(Succeed())
 			_, err := r.Reconcile(ctx, req)
 			Expect(err).NotTo(HaveOccurred())

@@ -73,10 +73,11 @@ func setAnnotation(obj metav1.Object, key, value string) {
 	obj.SetAnnotations(annotations)
 }
 
-// isMigrated reports whether exception-recommender created this gspolex from a legacy PolicyException.
+// isMigrated reports whether exception-recommender created this gspolex from a legacy PolicyException:
+// it carries the migrated-from annotation and exception-recommender's managed-by label.
 func isMigrated(p *policyAPI.PolicyException) bool {
 	_, ok := p.Annotations[AnnotationMigratedFrom]
-	return ok
+	return ok && p.Labels[ManagedBy] == SourceExceptionRecommender
 }
 
 // sourceOf reports the policy.giantswarm.io/source value for an exception generated from p.
