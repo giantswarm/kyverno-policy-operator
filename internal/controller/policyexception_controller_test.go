@@ -191,16 +191,34 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 	})
 
 	Context("When the ClusterPolicy is removed after the legacy exception exists", func() {
-		It("deletes the legacy exception", func() {
+		It("keeps the legacy exception and its entry, and refreshes the entry once the ClusterPolicy is back", func() {
 			_, err := r.Reconcile(ctx, req)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(k8sClient.Get(ctx, req.NamespacedName, &kyvernov2.PolicyException{})).To(Succeed())
+			Expect(k8sClient.Get(ctx, req.NamespacedName, &kyvernoPolicyException)).To(Succeed())
+			Expect(kyvernoPolicyException.Spec.Exceptions).To(ConsistOf(kyvernov2.Exception{
+				PolicyName: "disallow-privileged-containers", RuleNames: []string{"restrict-privileged-containers"},
+			}))
 
 			Expect(k8sClient.Delete(ctx, &kyvernoClusterPolicy)).Should(Succeed())
 			_, err = r.Reconcile(ctx, req)
 			Expect(err).NotTo(HaveOccurred())
-			err = k8sClient.Get(ctx, req.NamespacedName, &kyvernov2.PolicyException{})
-			Expect(apierrors.IsNotFound(err)).To(BeTrue())
+			Expect(k8sClient.Get(ctx, req.NamespacedName, &kyvernoPolicyException)).To(Succeed())
+			Expect(kyvernoPolicyException.Spec.Exceptions).To(ConsistOf(kyvernov2.Exception{
+				PolicyName: "disallow-privileged-containers", RuleNames: []string{"restrict-privileged-containers"},
+			}))
+
+			// Recreate the ClusterPolicy with an extra rule: the entry lists both rules.
+			recreated := kyvernoClusterPolicy.DeepCopy()
+			recreated.ResourceVersion = ""
+			extra := recreated.Spec.Rules[0].DeepCopy()
+			extra.Name = "restrict-privileged-init-containers"
+			recreated.Spec.Rules = append(recreated.Spec.Rules, *extra)
+			Expect(k8sClient.Create(ctx, recreated)).Should(Succeed())
+			_, err = r.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(k8sClient.Get(ctx, req.NamespacedName, &kyvernoPolicyException)).To(Succeed())
+			Expect(kyvernoPolicyException.Spec.Exceptions).To(HaveLen(1))
+			Expect(kyvernoPolicyException.Spec.Exceptions[0].RuleNames).To(ConsistOf("restrict-privileged-containers", "restrict-privileged-init-containers"))
 		})
 	})
 

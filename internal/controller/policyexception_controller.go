@@ -24,12 +24,14 @@ import (
 	policiesv1 "github.com/kyverno/api/api/policies.kyverno.io/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
+	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 	kyvernov2 "github.com/kyverno/kyverno/api/kyverno/v2"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/giantswarm/kyverno-policy-operator/internal/utils"
@@ -126,7 +128,9 @@ func generateExceptionKinds(resourceKind string) []string {
 func (r *PolicyExceptionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	b := ctrl.NewControllerManagedBy(mgr).For(&policyAPI.PolicyException{}).Owns(&policiesv1.PolicyException{})
 	if r.LegacyMode == LegacyWrite {
-		b = b.Owns(&kyvernov2.PolicyException{})
+		// No predicate: status.autogen changes do not bump the ClusterPolicy's generation.
+		b = b.Owns(&kyvernov2.PolicyException{}).
+			Watches(&kyvernov1.ClusterPolicy{}, handler.EnqueueRequestsFromMapFunc(r.gspolexesForClusterPolicy))
 	}
 	return b.Complete(r)
 }

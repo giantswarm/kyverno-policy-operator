@@ -224,9 +224,9 @@ func unorderedEqual(got, want []kyvernov2.Exception) bool {
 		exceptionMap[exception.PolicyName] = exception.RuleNames
 	}
 	for _, exception := range got {
-		// Check if the Policy Name is still present in the new Exceptions
-		if _, exists := exceptionMap[exception.PolicyName]; !exists {
-			// The Policy is not present in the new array
+		// Check if the Policy Name is still present in the new Exceptions, with as many rules
+		if rules, exists := exceptionMap[exception.PolicyName]; !exists || len(rules) != len(exception.RuleNames) {
+			// The Policy is not present in the new array, or its rules were added or removed
 			// Arrays are not equals, exit
 			return false
 		} else {
