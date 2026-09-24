@@ -128,7 +128,7 @@ kyverno_policy_operator_policyexceptions{api="cel",source="gspolex"} 0
 
 // Every api and reason series exists from the start, so increase() shows 0 instead of no data.
 func TestGenerationErrorsStartAtZero(t *testing.T) {
-	if got := testutil.CollectAndCount(GenerationErrors); got != 8 {
-		t.Errorf("got %d error series, want 8 (2 APIs x 4 reasons)", got)
+	if got := testutil.CollectAndCount(GenerationErrors); got != 7 {
+		t.Errorf("got %d error series, want 7 (2 APIs x 3 reasons, and name_taken for cel)", got)
 	}
 }

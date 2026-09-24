@@ -2,6 +2,7 @@ package controller
 
 import (
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -123,6 +124,12 @@ func TestTargetsMatchConditions(t *testing.T) {
 		{"version/kind in any group", versionKind, withAPIVersion(obj("Pod", "x", "p", ""), "example.com/v1"), true},
 		{"version/kind with another version", versionKind, withAPIVersion(obj("Pod", "x", "p", ""), "v2"), false},
 		{"wildcard version", []policyAPI.Target{{Kind: "apps/*/Deployment", Names: []string{"app"}}}, withAPIVersion(obj("Deployment", "x", "app", ""), "apps/v1"), true},
+		{"wildcard version in another group", []policyAPI.Target{{Kind: "apps/*/Deployment", Names: []string{"app"}}}, withAPIVersion(obj("Deployment", "x", "app", ""), "example.com/v1"), false},
+		{"core group, wildcard version", []policyAPI.Target{{Kind: "/*/Pod"}}, withAPIVersion(obj("Pod", "x", "p", ""), "v1"), true},
+		{"core group, wildcard version, in another group", []policyAPI.Target{{Kind: "/*/Pod"}}, withAPIVersion(obj("Pod", "x", "p", ""), "example.com/v1"), false},
+		{"core group, version wildcard", []policyAPI.Target{{Kind: "/v*/Pod"}}, withAPIVersion(obj("Pod", "x", "p", ""), "v1"), true},
+		{"core group, version wildcard, in another group", []policyAPI.Target{{Kind: "/v*/Pod"}}, withAPIVersion(obj("Pod", "x", "p", ""), "velero.io/v1"), false},
+		{"core group, exact version", []policyAPI.Target{{Kind: "/v1/Pod"}}, withAPIVersion(obj("Pod", "x", "p", ""), "v1"), true},
 		{"any kind", anyKind, withAPIVersion(obj("ConfigMap", "x", "app", ""), "v1"), true},
 		{"any kind, other name", anyKind, withAPIVersion(obj("ConfigMap", "x", "other", ""), "v1"), false},
 		{"pods of an any-kind target", anyKind, obj("Pod", "x", "", "app-5d4f8-"), true},
@@ -137,6 +144,9 @@ func TestTargetsMatchConditions(t *testing.T) {
 		{"long pod target names use the truncated prefix", []policyAPI.Target{{Kind: "Pod", Names: []string{long}}}, obj("Pod", "x", "", long[:58]), true},
 		{"pod target with a wildcard keeps it", []policyAPI.Target{{Kind: "Pod", Names: []string{"a?c"}}}, obj("Pod", "x", "abcd", ""), false},
 		{"deployment target does not match by prefix", []policyAPI.Target{{Kind: "Deployment", Names: []string{"web"}}}, obj("Deployment", "x", "web2", ""), false},
+		{"kind wildcard does not match another kind", []policyAPI.Target{{Kind: "Deploy*", Names: []string{"app"}}}, obj("DaemonSet", "x", "app", ""), false},
+		{"*/v1/Deployment is a subresource and left out", []policyAPI.Target{{Kind: "*/v1/Deployment", Names: []string{"app"}}}, withAPIVersion(obj("Deployment", "x", "app", ""), "apps/v1"), false},
+		{"apps/Deployment is a subresource and left out", []policyAPI.Target{{Kind: "apps/Deployment", Names: []string{"app"}}}, withAPIVersion(obj("Deployment", "x", "app", ""), "apps/v1"), false},
 		{"subresource target is left out", []policyAPI.Target{{Kind: "Pod/exec", Names: []string{"p"}}}, obj("Pod", "x", "p", ""), false},
 		{"other targets still match next to a subresource target", []policyAPI.Target{{Kind: "Pod/exec"}, {Kind: "Pod", Names: []string{"p"}}}, obj("Pod", "x", "p", ""), true},
 		{"namespace target matches the namespace by name", []policyAPI.Target{{Kind: "Namespace", Namespaces: []string{"team-a"}}}, obj("Namespace", "", "team-a", ""), true},
@@ -184,18 +194,20 @@ func TestBridgeMatchConditions(t *testing.T) {
 
 // TestLossyTranslations lists the objects the legacy exception of the same gspolex exempts
 // through its "name*" patterns, but the CEL exception does not. The CEL matching is stricter on
-// purpose.
+// purpose, except for subresource targets, which it cannot express.
 func TestLossyTranslations(t *testing.T) {
 	long := strings.Repeat("a", 70)
 	tests := []struct {
 		name        string
 		target      policyAPI.Target
-		object      any
+		object      map[string]any
 		legacyNames []string
 	}{
 		{"deployment with a longer name", policyAPI.Target{Kind: "Deployment", Names: []string{"test-app-1"}}, obj("Deployment", "x", "test-app-10", ""), []string{"test-app-1*"}},
 		{"pod of a deployment with a longer name", policyAPI.Target{Kind: "Deployment", Names: []string{"test-app-1"}}, obj("Pod", "x", "", "test-app-10-5d4f8-"), []string{"test-app-1*"}},
 		{"long name that differs after character 58", policyAPI.Target{Kind: "Deployment", Names: []string{long}}, obj("Deployment", "x", long[:58]+"zz", ""), []string{long[:58] + "*"}},
+		// The legacy exception exempts Pods "p*" of a Pod/exec target, the CEL exception drops the target.
+		{"pod of a subresource target", policyAPI.Target{Kind: "Pod/exec", Names: []string{"p"}}, obj("Pod", "x", "p-1", ""), []string{"p*"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -203,17 +215,20 @@ func TestLossyTranslations(t *testing.T) {
 			if got := eval(t, translateTargetsToMatchConditions(targets, false), tt.object, nil); got {
 				t.Errorf("the CEL exception exempts %v", tt.object)
 			}
-			legacy := translateTargetsToResourceFilters(targets)[0].Names
-			if !reflect.DeepEqual(legacy, tt.legacyNames) {
-				t.Errorf("legacy names: got %v, want %v", legacy, tt.legacyNames)
+			legacy := translateTargetsToResourceFilters(targets)[0]
+			if !reflect.DeepEqual(legacy.Names, tt.legacyNames) {
+				t.Errorf("legacy names: got %v, want %v", legacy.Names, tt.legacyNames)
+			}
+			if kind := tt.object["kind"].(string); !slices.Contains(legacy.Kinds, kind) {
+				t.Errorf("legacy kinds %v do not cover %v", legacy.Kinds, kind)
 			}
 		})
 	}
 }
 
 func TestUnsupportedTargetKinds(t *testing.T) {
-	targets := []policyAPI.Target{{Kind: "Pod"}, {Kind: "Pod/exec"}, {Kind: "v1/Pod/log"}, {Kind: "*/*"}, {Kind: "apps/v1/Deployment"}, {Kind: ""}}
-	want := []string{"Pod/exec", "v1/Pod/log", "*/*", ""}
+	targets := []policyAPI.Target{{Kind: "Pod"}, {Kind: "Pod/exec"}, {Kind: "v1/Pod/log"}, {Kind: "*/*"}, {Kind: "apps/v1/Deployment"}, {Kind: "*/v1/Deployment"}, {Kind: "apps/Deployment"}, {Kind: ""}}
+	want := []string{"Pod/exec", "v1/Pod/log", "*/*", "*/v1/Deployment", "apps/Deployment", ""}
 	if got := unsupportedTargetKinds(targets); !reflect.DeepEqual(got, want) {
 		t.Errorf("got %q, want %q", got, want)
 	}
@@ -375,7 +390,7 @@ func TestMatchConditionsCompileInKyvernoEnv(t *testing.T) {
 	for name, conds := range map[string][]admissionregistrationv1.MatchCondition{
 		"targets":        translateTargetsToMatchConditions([]policyAPI.Target{{Kind: "Deployment", Namespaces: []string{"default", "team-*"}, Names: []string{"a", "b-*", "c?d"}}}, false),
 		"namespaces":     translateTargetsToMatchConditions([]policyAPI.Target{{Kind: "Namespace", Namespaces: []string{"team-a", "team-*"}}}, false),
-		"kind formats":   translateTargetsToMatchConditions([]policyAPI.Target{{Kind: "apps/v1/Deployment"}, {Kind: "v1/Pod"}, {Kind: "*"}, {Kind: "Deploy*"}}, false),
+		"kind formats":   translateTargetsToMatchConditions([]policyAPI.Target{{Kind: "apps/v1/Deployment"}, {Kind: "v1/Pod"}, {Kind: "/v*/Pod"}, {Kind: "*"}, {Kind: "Deploy*"}}, false),
 		"no targets":     translateTargetsToMatchConditions(nil, false),
 		"chart-operator": chartOperatorMatchConditions([]string{"Namespace"}),
 	} {

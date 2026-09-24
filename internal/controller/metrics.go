@@ -30,10 +30,12 @@ var sources = []string{SourceGSPolex, SourceExceptionRecommender, SourceChartOpe
 func init() {
 	// Start every error series at 0, so increase() and rate() show 0 instead of no data.
 	for _, api := range []string{APILegacy, APICEL} {
-		for _, reason := range []string{"lookup_failed", "apply_failed", "delete_failed", "name_taken"} {
+		for _, reason := range []string{"lookup_failed", "apply_failed", "delete_failed"} {
 			GenerationErrors.WithLabelValues(api, reason)
 		}
 	}
+	// Only CEL exceptions refuse to change an object KPO did not create.
+	GenerationErrors.WithLabelValues(APICEL, "name_taken")
 }
 
 // zeroCounts returns a count of 0 for every source.

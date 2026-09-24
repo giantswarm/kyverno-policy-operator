@@ -87,7 +87,8 @@ func kindPattern(kind string) string {
 }
 
 // apiVersionPattern matches object.apiVersion for a Kyverno group and version. A "*" group also
-// matches the core group, whose apiVersion has no group part.
+// matches the core group, whose apiVersion has no group part. An empty group is the core group
+// only, so a wildcard version must not match a "group/version" apiVersion.
 func apiVersionPattern(group, version string) string {
 	switch {
 	case group == "*" && version == "*":
@@ -95,7 +96,7 @@ func apiVersionPattern(group, version string) string {
 	case group == "*":
 		return anyPattern("object.apiVersion", []string{version, "*/" + version})
 	case group == "":
-		return anyPattern("object.apiVersion", []string{version})
+		return allOf(anyPattern("object.apiVersion", []string{version}), `!object.apiVersion.contains("/")`)
 	default:
 		return anyPattern("object.apiVersion", []string{group + "/" + version})
 	}

@@ -10,6 +10,7 @@ import (
 	kyvernov2 "github.com/kyverno/kyverno/api/kyverno/v2"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -108,34 +109,49 @@ func applyFailedReason(err error) string {
 	return "apply_failed"
 }
 
-// deleteManaged deletes obj if it exists and KPO manages it. Objects KPO did not create are never touched.
+// deleteManaged deletes obj if it exists and KPO manages it. Objects KPO did not create are never
+// touched: the delete only succeeds for the object that was checked, and a changed object is checked
+// again.
 func deleteManaged(ctx context.Context, c client.Client, obj client.Object) error {
 	logger := log.FromContext(ctx)
 	key := client.ObjectKeyFromObject(obj)
 
-	if err := c.Get(ctx, key, obj); err != nil {
-		if errors.IsNotFound(err) {
-			logger.V(1).Info("nothing to delete", "object", key)
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		// Get merges into existing maps, so drop the labels read by an earlier attempt.
+		obj.SetLabels(nil)
+		if err := c.Get(ctx, key, obj); err != nil {
+			if errors.IsNotFound(err) {
+				logger.V(1).Info("nothing to delete", "object", key)
+				return nil
+			}
+			logger.Error(err, "failed to get object for deletion", "object", key)
+			return err
+		}
+
+		if obj.GetLabels()[ManagedBy] != ComponentName {
+			logger.V(1).Info("object not managed by kyverno-policy-operator, leaving alone", "object", key)
 			return nil
 		}
-		logger.Error(err, "failed to get object for deletion", "object", key)
-		return err
-	}
 
-	if obj.GetLabels()[ManagedBy] != ComponentName {
-		logger.V(1).Info("object not managed by kyverno-policy-operator, leaving alone", "object", key)
-		return nil
-	}
-
-	if err := c.Delete(ctx, obj); err != nil {
-		if errors.IsNotFound(err) {
+		uid, resourceVersion := obj.GetUID(), obj.GetResourceVersion()
+		err := c.Delete(ctx, obj, client.Preconditions{UID: &uid, ResourceVersion: &resourceVersion})
+		switch {
+		case err == nil:
+			logger.Info("deleted managed object", "object", key)
+		case errors.IsNotFound(err):
+			logger.V(1).Info("object already deleted", "object", key)
 			return nil
+		case errors.IsConflict(err):
+			logger.V(1).Info("object changed since it was checked, checking again", "object", key)
+		default:
+			logger.Error(err, "failed to delete object", "object", key)
 		}
-		logger.Error(err, "failed to delete object", "object", key)
 		return err
+	})
+	if errors.IsConflict(err) {
+		logger.Error(err, "object kept changing, not deleted", "object", key)
 	}
-	logger.Info("deleted managed object", "object", key)
-	return nil
+	return err
 }
 
 // translateTargetsToResourceFilters takes a Giant Swarm Policy API target array and creates the necessary Kyverno ResourceFilters

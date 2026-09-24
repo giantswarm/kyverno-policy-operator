@@ -6,12 +6,17 @@ import (
 	"testing"
 
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
+	policiesv1 "github.com/kyverno/api/api/policies.kyverno.io/v1"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 	kyvernov2 "github.com/kyverno/kyverno/api/kyverno/v2"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -93,5 +98,70 @@ func TestGspolexesForClusterPolicy(t *testing.T) {
 	}
 	if got := r.gspolexesForClusterPolicy(context.Background(), &kyvernov1.ClusterPolicy{ObjectMeta: metav1.ObjectMeta{Name: "unused"}}); len(got) != 0 {
 		t.Errorf("got %v for a ClusterPolicy no gspolex names", got)
+	}
+}
+
+// An object that loses KPO's label between the check and the delete is checked again and kept.
+func TestDeleteManagedRechecksAChangedObject(t *testing.T) {
+	ctx := context.Background()
+	s := runtime.NewScheme()
+	if err := policiesv1.Install(s); err != nil {
+		t.Fatal(err)
+	}
+	key := types.NamespacedName{Namespace: "policy-exceptions", Name: "app"}
+	existing := &policiesv1.PolicyException{ObjectMeta: metav1.ObjectMeta{
+		Name: key.Name, Namespace: key.Namespace, Labels: map[string]string{ManagedBy: ComponentName},
+	}}
+	deletes := 0
+	c := fake.NewClientBuilder().WithScheme(s).WithObjects(existing).WithInterceptorFuncs(interceptor.Funcs{
+		Delete: func(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
+			deletes++
+			if deletes == 1 {
+				// Someone else takes the object over after KPO checked it.
+				var current policiesv1.PolicyException
+				if err := c.Get(ctx, key, &current); err != nil {
+					return err
+				}
+				current.Labels = map[string]string{ManagedBy: "someone-else"}
+				if err := c.Update(ctx, &current); err != nil {
+					return err
+				}
+			}
+			return c.Delete(ctx, obj, opts...)
+		},
+	}).Build()
+
+	if err := deleteManaged(ctx, c, &policiesv1.PolicyException{ObjectMeta: metav1.ObjectMeta{Name: key.Name, Namespace: key.Namespace}}); err != nil {
+		t.Fatal(err)
+	}
+	if deletes != 1 {
+		t.Errorf("got %d delete calls, want 1", deletes)
+	}
+	var kept policiesv1.PolicyException
+	if err := c.Get(ctx, key, &kept); err != nil {
+		t.Fatalf("the object was deleted: %v", err)
+	}
+	if kept.Labels[ManagedBy] != "someone-else" {
+		t.Errorf("unexpected labels %v", kept.Labels)
+	}
+}
+
+func TestDeleteManagedAlreadyDeleted(t *testing.T) {
+	ctx := context.Background()
+	s := runtime.NewScheme()
+	if err := policiesv1.Install(s); err != nil {
+		t.Fatal(err)
+	}
+	existing := &policiesv1.PolicyException{ObjectMeta: metav1.ObjectMeta{
+		Name: "app", Namespace: "policy-exceptions", Labels: map[string]string{ManagedBy: ComponentName},
+	}}
+	c := fake.NewClientBuilder().WithScheme(s).WithObjects(existing).WithInterceptorFuncs(interceptor.Funcs{
+		Delete: func(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
+			return apierrors.NewNotFound(schema.GroupResource{Group: "policies.kyverno.io", Resource: "policyexceptions"}, obj.GetName())
+		},
+	}).Build()
+
+	if err := deleteManaged(ctx, c, &policiesv1.PolicyException{ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: "policy-exceptions"}}); err != nil {
+		t.Errorf("got %v, want no error", err)
 	}
 }
