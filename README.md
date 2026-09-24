@@ -85,8 +85,8 @@ PolicyException, both named after it:
 When a ClusterPolicy is deleted, for example while it is being replaced, the `kyverno.io/v2`
 PolicyException keeps its entry for that policy, with the rules it had, until the ClusterPolicy is
 back. It is never deleted just because its ClusterPolicies are missing, only when legacy exceptions
-are switched off, the gspolex is migrated or deleted, or the gspolex lists none of the policies it
-has entries for. The operator watches ClusterPolicies, so a new rule or `status.autogen` change is
+are switched off, the gspolex is migrated or deleted, or none of its policies exists as a
+ClusterPolicy or has an entry. The operator watches ClusterPolicies, so a new rule or `status.autogen` change is
 picked up right away.
 
 `--background-mode` (Helm `policyOperator.exceptionBackgroundMode`) only applies to the
