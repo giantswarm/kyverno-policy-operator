@@ -74,12 +74,16 @@ func (r *PolicyExceptionReconciler) reconcileLegacy(ctx context.Context, gspolex
 	}
 
 	legacy := kyvernov2.PolicyException{ObjectMeta: metav1.ObjectMeta{Name: gspolex.Name, Namespace: namespace}}
+	targets := dropEmptyNames(logger, gspolex.Spec.Targets)
 	var exceptions []kyvernov2.Exception
 	switch {
 	case r.LegacyMode == LegacyCleanup:
 		logger.V(1).Info("legacy exceptions switched off")
 	case isMigrated(gspolex):
 		logger.V(1).Info("gspolex migrated by exception-recommender, skipping legacy exception")
+	case len(targets) == 0:
+		// A legacy exception without resource filters would match every resource.
+		logger.V(1).Info("gspolex has no usable targets, skipping legacy exception")
 	default:
 		var err error
 		exceptions, err = r.legacyExceptions(ctx, gspolex, client.ObjectKeyFromObject(&legacy))
@@ -103,7 +107,7 @@ func (r *PolicyExceptionReconciler) reconcileLegacy(ctx context.Context, gspolex
 			return err
 		}
 		legacy.Spec.Background = &r.Background
-		legacy.Spec.Match.Any = translateTargetsToResourceFilters(gspolex.Spec.Targets)
+		legacy.Spec.Match.Any = translateTargetsToResourceFilters(targets)
 		if !unorderedEqual(legacy.Spec.Exceptions, exceptions) {
 			legacy.Spec.Exceptions = exceptions
 		}

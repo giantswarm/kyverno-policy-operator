@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
+	"github.com/go-logr/logr"
 	policiesv1 "github.com/kyverno/api/api/policies.kyverno.io/v1"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 	kyvernov2 "github.com/kyverno/kyverno/api/kyverno/v2"
@@ -166,5 +167,35 @@ func TestDeleteManagedAlreadyDeleted(t *testing.T) {
 
 	if err := deleteManaged(ctx, c, &policiesv1.PolicyException{ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: "policy-exceptions"}}); err != nil {
 		t.Errorf("got %v, want no error", err)
+	}
+}
+
+func TestDropEmptyNames(t *testing.T) {
+	tests := []struct {
+		name  string
+		names []string
+		want  []policyAPI.Target
+	}{
+		{"only an empty name leaves the target out", []string{""}, []policyAPI.Target{}},
+		{"an empty name next to another is skipped", []string{"", "foo"}, []policyAPI.Target{{Kind: "Pod", Names: []string{"foo"}}}},
+		{"names are kept", []string{"foo"}, []policyAPI.Target{{Kind: "Pod", Names: []string{"foo"}}}},
+		{"no names are kept as they are", []string{}, []policyAPI.Target{{Kind: "Pod", Names: []string{}}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := dropEmptyNames(logr.Discard(), []policyAPI.Target{{Kind: "Pod", Names: tt.names}})
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("got %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFormatNamesSkipsEmptyNames(t *testing.T) {
+	if got, want := formatNames([]string{""}), []string{}; !reflect.DeepEqual(got, want) {
+		t.Errorf("got %q, want %q", got, want)
+	}
+	if got, want := formatNames([]string{"", "foo"}), []string{"foo*"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("got %q, want %q", got, want)
 	}
 }

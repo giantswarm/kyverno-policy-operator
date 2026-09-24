@@ -250,3 +250,58 @@ func TestReconcileCELBridge(t *testing.T) {
 		})
 	}
 }
+
+// Empty target names never panic and never widen an exception to every name.
+func TestReconcileEmptyTargetNames(t *testing.T) {
+	ctx := context.Background()
+	key := types.NamespacedName{Namespace: "policy-exceptions", Name: "app"}
+	tests := []struct {
+		name       string
+		names      []string
+		wantLegacy bool
+		matchesFoo bool
+		matchesBar bool
+	}{
+		{"only an empty name", []string{""}, false, false, false},
+		{"an empty name next to another", []string{"", "foo"}, true, true, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := newScheme(t, policyAPI.AddToScheme, policiesv1.Install, kyvernov1.Install, kyvernov2.Install)
+			gspolex := testGSPolex()
+			gspolex.Spec.Targets = []policyAPI.Target{{Kind: "ConfigMap", Namespaces: []string{"team-a"}, Names: tt.names}}
+			c := fake.NewClientBuilder().WithScheme(s).
+				WithObjects(gspolex, &kyvernov1.ClusterPolicy{ObjectMeta: metav1.ObjectMeta{Name: "disallow-privileged"}}).Build()
+			r := &PolicyExceptionReconciler{Client: c, Scheme: s, Log: logr.Discard(), DestinationNamespace: "policy-exceptions", MaxJitterPercent: 10, LegacyMode: LegacyWrite}
+			if _, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: key}); err != nil {
+				t.Fatal(err)
+			}
+
+			var cel policiesv1.PolicyException
+			if err := c.Get(ctx, key, &cel); err != nil {
+				t.Fatal(err)
+			}
+			if got := eval(t, cel.Spec.MatchConditions, obj("ConfigMap", "team-a", "foo", ""), nil); got != tt.matchesFoo {
+				t.Errorf("CEL exception matches foo: got %v, want %v", got, tt.matchesFoo)
+			}
+			if got := eval(t, cel.Spec.MatchConditions, obj("ConfigMap", "team-a", "bar", ""), nil); got != tt.matchesBar {
+				t.Errorf("CEL exception matches bar: got %v, want %v", got, tt.matchesBar)
+			}
+
+			var legacy kyvernov2.PolicyException
+			err := c.Get(ctx, key, &legacy)
+			if !tt.wantLegacy {
+				if !apierrors.IsNotFound(err) {
+					t.Errorf("legacy exception written: %v %+v", err, legacy.Spec.Match.Any)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := legacy.Spec.Match.Any[0].Names; len(got) != 1 || got[0] != "foo*" {
+				t.Errorf("legacy names: got %v, want [foo*]", got)
+			}
+		})
+	}
+}

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
+	"github.com/go-logr/logr"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 	kyvernov2 "github.com/kyverno/kyverno/api/kyverno/v2"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -172,10 +173,34 @@ func translateTargetsToResourceFilters(targets []policyAPI.Target) kyvernov1.Res
 	return resourceFilters
 }
 
-// formatName validates the names size and adds a wildcard if necessary
+// dropEmptyNames removes empty target names, which cannot name an object. A target left with no names
+// is dropped as well: without names it would match every name.
+func dropEmptyNames(logger logr.Logger, targets []policyAPI.Target) []policyAPI.Target {
+	kept := make([]policyAPI.Target, 0, len(targets))
+	for _, target := range targets {
+		names := slices.DeleteFunc(slices.Clone(target.Names), func(name string) bool { return name == "" })
+		if len(names) == len(target.Names) {
+			kept = append(kept, target)
+			continue
+		}
+		if len(names) == 0 {
+			logger.V(1).Info("target has only empty names, leaving it out", "kind", target.Kind)
+			continue
+		}
+		logger.V(1).Info("empty target names skipped", "kind", target.Kind)
+		target.Names = names
+		kept = append(kept, target)
+	}
+	return kept
+}
+
+// formatName validates the names size and adds a wildcard if necessary. Empty names are skipped.
 func formatNames(names []string) []string {
 	newNames := []string{}
 	for _, name := range names {
+		if name == "" {
+			continue
+		}
 		// Check if name will be truncated by Kubernetes
 		if len(name) > MaxNameLength {
 			// Truncate in advanced to avoid issues

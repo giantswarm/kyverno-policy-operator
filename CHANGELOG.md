@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Create the legacy chart-operator bypass for ClusterPolicy rules that write their kind as `group/version/Kind`, such as `kyverno.io/v2/PolicyException`.
 - Keep every matching ClusterPolicy's entry in the legacy chart-operator bypass. Policies used to overwrite each other's entries.
 - Log the ClusterPolicy, PolicyException and PolicyManifest controllers' messages, which were dropped.
+- An empty target name no longer crashes the operator. Empty names are skipped, and a target with only empty names exempts nothing.
 
 ### Changed
 
