@@ -139,6 +139,11 @@ func TestTargetsMatchConditions(t *testing.T) {
 		{"deployment target does not match by prefix", []policyAPI.Target{{Kind: "Deployment", Names: []string{"web"}}}, obj("Deployment", "x", "web2", ""), false},
 		{"subresource target is left out", []policyAPI.Target{{Kind: "Pod/exec", Names: []string{"p"}}}, obj("Pod", "x", "p", ""), false},
 		{"other targets still match next to a subresource target", []policyAPI.Target{{Kind: "Pod/exec"}, {Kind: "Pod", Names: []string{"p"}}}, obj("Pod", "x", "p", ""), true},
+		{"namespace target matches the namespace by name", []policyAPI.Target{{Kind: "Namespace", Namespaces: []string{"team-a"}}}, obj("Namespace", "", "team-a", ""), true},
+		{"namespace target does not match another namespace", []policyAPI.Target{{Kind: "Namespace", Namespaces: []string{"team-a"}}}, obj("Namespace", "", "team-b", ""), false},
+		{"namespace target with a namespace wildcard", []policyAPI.Target{{Kind: "Namespace", Namespaces: []string{"team-*"}}}, obj("Namespace", "", "team-a", ""), true},
+		{"namespace wildcard on a namespace target is anchored", []policyAPI.Target{{Kind: "Namespace", Namespaces: []string{"team-*"}}}, obj("Namespace", "", "my-team-a", ""), false},
+		{"namespaced kinds still use their namespace", []policyAPI.Target{{Kind: "Pod", Namespaces: []string{"team-a"}}}, obj("Pod", "team-b", "team-a", ""), false},
 		{"object without a namespace field", []policyAPI.Target{{Kind: "Namespace", Names: []string{"team-a"}}}, map[string]any{"kind": "Namespace", "metadata": map[string]any{"name": "team-a"}}, true},
 		{"namespace filter on an object without a namespace field", []policyAPI.Target{{Kind: "Namespace", Namespaces: []string{"x"}}}, map[string]any{"kind": "Namespace", "metadata": map[string]any{"name": "team-a"}}, false},
 	}
@@ -217,6 +222,7 @@ func TestUnsupportedTargetKinds(t *testing.T) {
 // TestTargetsMatchConditionsFormat pins the generated layout so that it stays readable in kubectl.
 func TestTargetsMatchConditionsFormat(t *testing.T) {
 	const name = `(object.metadata.?name.orValue("") != "" ? object.metadata.name : object.metadata.?generateName.orValue(""))`
+	const namespace = `(object.kind == "Namespace" ? object.metadata.?name.orValue("") : object.metadata.?namespace.orValue(""))`
 	tests := []struct {
 		name    string
 		targets []policyAPI.Target
@@ -227,7 +233,7 @@ func TestTargetsMatchConditionsFormat(t *testing.T) {
 			name:    "one namespaced target",
 			targets: []policyAPI.Target{{Kind: "Deployment", Namespaces: []string{"default"}, Names: []string{"test-app-1"}}},
 			want: `object != null && (
-  (object.metadata.?namespace.orValue("") == "default" && (
+  (` + namespace + ` == "default" && (
     (object.kind == "Deployment" && ` + name + ` == "test-app-1") ||
     (object.kind in ["ReplicaSet", "Pod"] && ` + name + `.startsWith("test-app-1-"))
   ))
@@ -261,7 +267,7 @@ func TestTargetsMatchConditionsFormat(t *testing.T) {
 			name:    "version/kind",
 			targets: []policyAPI.Target{{Kind: "v1/Pod", Namespaces: []string{"default"}}},
 			want: `object != null && (
-  (object.metadata.?namespace.orValue("") == "default" && (object.apiVersion == "v1" || object.apiVersion.matches("^.*/v1$")) && object.kind == "Pod")
+  (` + namespace + ` == "default" && (object.apiVersion == "v1" || object.apiVersion.matches("^.*/v1$")) && object.kind == "Pod")
 )`,
 		},
 		{
@@ -291,7 +297,7 @@ func TestTargetsMatchConditionsFormat(t *testing.T) {
 			name:    "two pod names",
 			targets: []policyAPI.Target{{Kind: "Pod", Namespaces: []string{"default"}, Names: []string{"app-a", "app-b"}}},
 			want: `object != null && (
-  (object.metadata.?namespace.orValue("") == "default" && object.kind == "Pod" && (` + name + `.startsWith("app-a") || ` + name + `.startsWith("app-b")))
+  (` + namespace + ` == "default" && object.kind == "Pod" && (` + name + `.startsWith("app-a") || ` + name + `.startsWith("app-b")))
 )`,
 		},
 	}
@@ -368,6 +374,7 @@ func TestMatchConditionsCompileInKyvernoEnv(t *testing.T) {
 	env := kyvernoExceptionEnv(t)
 	for name, conds := range map[string][]admissionregistrationv1.MatchCondition{
 		"targets":        translateTargetsToMatchConditions([]policyAPI.Target{{Kind: "Deployment", Namespaces: []string{"default", "team-*"}, Names: []string{"a", "b-*", "c?d"}}}, false),
+		"namespaces":     translateTargetsToMatchConditions([]policyAPI.Target{{Kind: "Namespace", Namespaces: []string{"team-a", "team-*"}}}, false),
 		"kind formats":   translateTargetsToMatchConditions([]policyAPI.Target{{Kind: "apps/v1/Deployment"}, {Kind: "v1/Pod"}, {Kind: "*"}, {Kind: "Deploy*"}}, false),
 		"no targets":     translateTargetsToMatchConditions(nil, false),
 		"chart-operator": chartOperatorMatchConditions([]string{"Namespace"}),

@@ -21,7 +21,8 @@ const (
 // such as Pods created by a ReplicaSet.
 const objectName = `(object.metadata.?name.orValue("") != "" ? object.metadata.name : object.metadata.?generateName.orValue(""))`
 
-const objectNamespace = `object.metadata.?namespace.orValue("")`
+// objectNamespace is a Namespace's own name, as in Kyverno's namespace matching for legacy exceptions.
+const objectNamespace = `(object.kind == "Namespace" ? object.metadata.?name.orValue("") : object.metadata.?namespace.orValue(""))`
 
 // translateTargetsToMatchConditions turns gspolex targets into one CEL match condition that is true
 // when any target matches, with one target per line. A null object (DELETE) never matches, and no
