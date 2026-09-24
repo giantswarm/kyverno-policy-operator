@@ -99,16 +99,18 @@ func (r *ChartOperatorBypassReconciler) Reconcile(ctx context.Context, _ ctrl.Re
 	return ctrl.Result{}, nil
 }
 
-// isBypass reports whether obj is the bypass PolicyException, so that changing or deleting it
-// rebuilds it right away.
-func (r *ChartOperatorBypassReconciler) isBypass(obj client.Object) bool {
-	return obj.GetName() == ChartOperatorBypassName && obj.GetNamespace() == r.Namespace
+// bypassPredicate passes only the events of the bypass PolicyException, so that changing or
+// deleting it rebuilds it right away.
+func (r *ChartOperatorBypassReconciler) bypassPredicate() predicate.Predicate {
+	return predicate.NewPredicateFuncs(func(obj client.Object) bool {
+		return obj.GetName() == ChartOperatorBypassName && obj.GetNamespace() == r.Namespace
+	})
 }
 
 func (r *ChartOperatorBypassReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("chartoperatorbypass").
 		For(&policiesv1.ValidatingPolicy{}).
-		Watches(&policiesv1.PolicyException{}, &handler.EnqueueRequestForObject{}, builder.WithPredicates(predicate.NewPredicateFuncs(r.isBypass))).
+		Watches(&policiesv1.PolicyException{}, &handler.EnqueueRequestForObject{}, builder.WithPredicates(r.bypassPredicate())).
 		Complete(r)
 }
