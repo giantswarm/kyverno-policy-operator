@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	kyvernov2 "github.com/kyverno/kyverno/api/kyverno/v2"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -26,6 +27,7 @@ import (
 
 	"github.com/go-logr/logr"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
+	kubeutils "github.com/kyverno/kyverno/pkg/utils/kube"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -62,7 +64,9 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 		// Check if the ClusterPolicy was deleted
 		if errors.IsNotFound(err) {
-			// Ignore
+			// Leave it out of the next chart-operator bypass update
+			delete(r.ExceptionList, req.Name)
+			r.Log.V(1).Info("ClusterPolicy not found, removed from the chart-operator bypass entries", "clusterpolicy", req.Name)
 			return ctrl.Result{}, nil
 		}
 
@@ -89,6 +93,8 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			// Check if the rule has a validate section
 			if rule.HasValidate() {
 				for _, kind := range rule.MatchResources.GetKinds() {
+					// Rules may write the kind as "group/version/Kind", so compare only the kind.
+					_, _, kind, _ = kubeutils.ParseKindSelector(kind)
 					// Check for Namespace validation
 					for _, destinationKind := range r.ChartOperatorExceptionKinds {
 						if kind == destinationKind {
@@ -99,13 +105,13 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 							policyException := kyvernov2.PolicyException{}
 
 							// Set namespace
-							policyException.Namespace = "giantswarm"
+							policyException.Namespace = ChartOperatorBypassNamespace
 
 							// Set name
-							policyException.Name = "chart-operator-generated-sa-bypass"
+							policyException.Name = ChartOperatorBypassName
 
 							// Set labels
-							policyException.Labels = generateLabels()
+							setManagedLabels(&policyException, SourceChartOperator)
 
 							// Set Background behaviour to false since this Polex is using Subjects
 							background := false
@@ -114,11 +120,8 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 							// Set Spec.Match.All
 							policyException.Spec.Match.All = templateResourceFilters(r.ChartOperatorExceptionKinds)
 
-							policies := []kyvernov1.ClusterPolicy{clusterPolicy}
-
-							// Set .Spec.Exceptions
-							newExceptions := translatePoliciesToExceptions(policies)
-							policyException.Spec.Exceptions = newExceptions
+							// Set .Spec.Exceptions for every matching ClusterPolicy, since the patch replaces the list
+							policyException.Spec.Exceptions = r.bypassExceptions()
 
 							// Patch PolicyException Kinds
 							gvks, unversioned, err := r.Scheme.ObjectKinds(&policyException)
@@ -144,6 +147,16 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 	}
 	return utils.JitterRequeue(DefaultRequeueDuration, r.MaxJitterPercent, r.Log), nil
+}
+
+// bypassExceptions lists the entries of every ClusterPolicy in ExceptionList, sorted by policy name.
+func (r *ClusterPolicyReconciler) bypassExceptions() []kyvernov2.Exception {
+	policies := make([]kyvernov1.ClusterPolicy, 0, len(r.ExceptionList))
+	for _, clusterPolicy := range r.ExceptionList {
+		policies = append(policies, clusterPolicy)
+	}
+	sort.Slice(policies, func(i, j int) bool { return policies[i].Name < policies[j].Name })
+	return translatePoliciesToExceptions(policies)
 }
 
 // CreateOrUpdate attempts first to patch the object given but if an IsNotFound error
@@ -174,7 +187,7 @@ func templateResourceFilters(kinds []string) kyvernov1.ResourceFilters {
 			Subjects: []rbacv1.Subject{{
 				Kind:      "ServiceAccount",
 				Name:      "chart-operator",
-				Namespace: "giantswarm",
+				Namespace: ChartOperatorBypassNamespace,
 			}},
 		},
 		ResourceDescription: kyvernov1.ResourceDescription{

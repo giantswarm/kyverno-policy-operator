@@ -25,6 +25,7 @@ import (
 
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
 	"github.com/go-logr/logr"
+	policiesv1 "github.com/kyverno/api/api/policies.kyverno.io/v1"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 	kyvernov2 "github.com/kyverno/kyverno/api/kyverno/v2"
 	. "github.com/onsi/ginkgo/v2"
@@ -96,6 +97,10 @@ var _ = BeforeSuite(func() {
 
 	// Add Kyverno beta scheme
 	err = kyvernov2.Install(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	// Add Kyverno CEL policies scheme
+	err = policiesv1.Install(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme

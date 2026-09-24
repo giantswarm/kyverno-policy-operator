@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -26,6 +27,8 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
+
+	policiesv1 "github.com/kyverno/api/api/policies.kyverno.io/v1"
 
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
 
@@ -39,8 +42,10 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	//+kubebuilder:scaffold:imports
 )
@@ -53,6 +58,7 @@ var (
 func init() {
 	utilruntime.Must(kyvernov2.Install(scheme))
 	utilruntime.Must(kyvernov1.Install(scheme))
+	utilruntime.Must(policiesv1.Install(scheme))
 	utilruntime.Must(policyAPI.AddToScheme(scheme))
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
@@ -67,6 +73,7 @@ func main() {
 	var polmanEnabled bool
 	var chartOperatorExceptionKinds []string
 	var maxJitterPercent int
+	var legacyExceptions bool
 	policyCache := make(map[string]kyvernov1.ClusterPolicy)
 
 	// Flags
@@ -80,7 +87,7 @@ func main() {
 		Development: false,
 	}
 	flag.BoolVar(&backgroundMode, "background-mode", false,
-		"Enable PolicyException background mode. If true, failing resources have a status of 'skip' in reports, instead of 'fail'. Defaults to false.",
+		"Enable background mode on the generated kyverno.io/v2 PolicyExceptions. If true, failing resources have a status of 'skip' in reports, instead of 'fail'. Has no effect on policies.kyverno.io PolicyExceptions. Defaults to false.",
 	)
 	flag.BoolVar(&polmanEnabled, "enable-policy-manifests", false, "Enable PolicyManifests reconciliation.")
 	flag.Func("chart-operator-exception-kinds",
@@ -93,6 +100,8 @@ func main() {
 			return nil
 		})
 	flag.IntVar(&maxJitterPercent, "max-jitter-percent", 10, "Spreads out re-queue interval by +/- this amount to spread load.")
+	flag.BoolVar(&legacyExceptions, "legacy-exceptions", true,
+		"Write kyverno.io/v2 PolicyExceptions next to the policies.kyverno.io ones. When false, the kyverno.io/v2 PolicyExceptions created by this operator are deleted. Ignored when the kyverno.io CRDs are not installed.")
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
@@ -126,23 +135,52 @@ func main() {
 		os.Exit(1)
 	}
 
+	legacyMode, err := controller.DetectLegacyMode(mgr.GetRESTMapper(), legacyExceptions)
+	if err != nil {
+		setupLog.Error(err, "unable to detect Kyverno legacy CRDs")
+		os.Exit(1)
+	}
+	setupLog.Info("legacy PolicyExceptions", "mode", legacyMode)
+
+	metrics.Registry.MustRegister(controller.GenerationErrors, &controller.ExceptionCollector{
+		Reader:     mgr.GetClient(),
+		LegacyMode: legacyMode,
+		Log:        ctrl.Log.WithName("metrics"),
+	})
+
+	if legacyMode == controller.LegacyCleanup {
+		directClient, err := client.New(mgr.GetConfig(), client.Options{Scheme: mgr.GetScheme()})
+		if err == nil {
+			err = controller.DeleteLegacyChartOperatorBypass(context.Background(), directClient)
+		}
+		if err != nil {
+			setupLog.Error(err, "unable to delete legacy chart-operator bypass")
+			os.Exit(1)
+		}
+	}
+
 	if err = (&controller.PolicyExceptionReconciler{
 		Client:               mgr.GetClient(),
 		Scheme:               mgr.GetScheme(),
+		Log:                  ctrl.Log.WithName("policyexception"),
 		DestinationNamespace: destinationNamespace,
 		Background:           backgroundMode,
-		PolicyCache:          policyCache,
+		LegacyMode:           legacyMode,
 		MaxJitterPercent:     maxJitterPercent,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PolicyException")
 		os.Exit(1)
 	}
 
-	if polmanEnabled {
+	if polmanEnabled && legacyMode != controller.LegacyWrite {
+		setupLog.Info("PolicyManifests enabled but legacy PolicyExceptions are not written; not starting the PolicyManifest controller", "mode", legacyMode)
+	}
+	if polmanEnabled && legacyMode == controller.LegacyWrite {
 		setupLog.Info("PolicyManifests enabled, setting up PolicyManifest controller")
 		if err = (&controller.PolicyManifestReconciler{
 			Client:               mgr.GetClient(),
 			Scheme:               mgr.GetScheme(),
+			Log:                  ctrl.Log.WithName("policymanifest"),
 			DestinationNamespace: destinationNamespace,
 			Background:           backgroundMode,
 			PolicyCache:          policyCache,
@@ -153,16 +191,36 @@ func main() {
 		}
 	}
 
-	if err = (&controller.ClusterPolicyReconciler{
-		Client:                      mgr.GetClient(),
-		Scheme:                      mgr.GetScheme(),
-		ExceptionList:               make(map[string]kyvernov1.ClusterPolicy),
-		ChartOperatorExceptionKinds: chartOperatorExceptionKinds,
-		PolicyCache:                 policyCache,
-		MaxJitterPercent:            maxJitterPercent,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "PolicyException")
-		os.Exit(1)
+	if legacyMode == controller.LegacyWrite {
+		setupLog.Info("setting up ClusterPolicy controller")
+		if err = (&controller.ClusterPolicyReconciler{
+			Client:                      mgr.GetClient(),
+			Scheme:                      mgr.GetScheme(),
+			Log:                         ctrl.Log.WithName("clusterpolicy"),
+			ExceptionList:               make(map[string]kyvernov1.ClusterPolicy),
+			ChartOperatorExceptionKinds: chartOperatorExceptionKinds,
+			PolicyCache:                 policyCache,
+			MaxJitterPercent:            maxJitterPercent,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ClusterPolicy")
+			os.Exit(1)
+		}
+	} else {
+		setupLog.Info("legacy PolicyExceptions not written; not starting the ClusterPolicy controller", "mode", legacyMode)
+	}
+
+	if len(chartOperatorExceptionKinds) != 0 {
+		setupLog.Info("setting up ChartOperatorBypass controller")
+		if err = (&controller.ChartOperatorBypassReconciler{
+			Client:    mgr.GetClient(),
+			Kinds:     chartOperatorExceptionKinds,
+			Namespace: controller.ChartOperatorBypassNamespace,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ChartOperatorBypass")
+			os.Exit(1)
+		}
+	} else {
+		setupLog.Info("no chart-operator exception kinds configured; not starting the ChartOperatorBypass controller")
 	}
 
 	//+kubebuilder:scaffold:builder

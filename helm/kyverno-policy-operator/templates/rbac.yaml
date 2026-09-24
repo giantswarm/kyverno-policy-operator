@@ -44,6 +44,28 @@ rules:
       - get
       - list
       - watch
+  - apiGroups:
+      - policies.kyverno.io
+    resources:
+      - policyexceptions
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - policies.kyverno.io
+    resources:
+      - validatingpolicies
+      - mutatingpolicies
+      - imagevalidatingpolicies
+    verbs:
+      - get
+      - list
+      - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

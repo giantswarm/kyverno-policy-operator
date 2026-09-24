@@ -66,8 +66,13 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}
 
+	allTargets := make([]policyAPI.Target, len(polman.Spec.Exceptions)+len(polman.Spec.AutomatedExceptions))
+	copy(allTargets, polman.Spec.Exceptions)
+	copy(allTargets[len(polman.Spec.Exceptions):], polman.Spec.AutomatedExceptions)
+	allTargets = dropEmptyNames(log.FromContext(ctx).WithValues("policymanifest", polman.Name), allTargets)
+
 	// Check if the PolicyManifest has any exceptions defined before creation
-	if len(polman.Spec.Exceptions) == 0 && len(polman.Spec.AutomatedExceptions) == 0 {
+	if len(allTargets) == 0 {
 		// Create label selector
 		labelSelector := client.MatchingLabels{
 			GSPolicy:  polman.Labels[GSPolicy],
@@ -99,10 +104,6 @@ func (r *PolicyManifestReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	kyvernoPolicyException.Labels[GSPolicy] = polman.Labels[GSPolicy]
 
 	kyvernoPolicyException.Spec.Background = &r.Background
-
-	allTargets := make([]policyAPI.Target, len(polman.Spec.Exceptions)+len(polman.Spec.AutomatedExceptions))
-	copy(allTargets, polman.Spec.Exceptions)
-	copy(allTargets[len(polman.Spec.Exceptions):], polman.Spec.AutomatedExceptions)
 
 	var kyvernoPolicy kyvernov1.ClusterPolicy
 	var ok bool
