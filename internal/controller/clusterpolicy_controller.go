@@ -26,6 +26,7 @@ import (
 
 	"github.com/go-logr/logr"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
+	kubeutils "github.com/kyverno/kyverno/pkg/utils/kube"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -89,6 +90,8 @@ func (r *ClusterPolicyReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			// Check if the rule has a validate section
 			if rule.HasValidate() {
 				for _, kind := range rule.MatchResources.GetKinds() {
+					// Rules may write the kind as "group/version/Kind", so compare only the kind.
+					_, _, kind, _ = kubeutils.ParseKindSelector(kind)
 					// Check for Namespace validation
 					for _, destinationKind := range r.ChartOperatorExceptionKinds {
 						if kind == destinationKind {
