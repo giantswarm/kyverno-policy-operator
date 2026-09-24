@@ -128,6 +128,15 @@ func TestTargetsMatchConditions(t *testing.T) {
 		{"pods of an any-kind target", anyKind, obj("Pod", "x", "", "app-5d4f8-"), true},
 		{"any kind without names or namespaces", []policyAPI.Target{{Kind: "*"}}, obj("Secret", "x", "s", ""), true},
 		{"kind wildcard", []policyAPI.Target{{Kind: "Deploy*", Names: []string{"app"}}}, obj("Deployment", "x", "app", ""), true},
+		{"pod target matches its generated names", []policyAPI.Target{{Kind: "Pod", Names: []string{"my-agent"}}}, obj("Pod", "x", "my-agent-7f9c4-abcde", ""), true},
+		{"pod target matches a pod named by the API server", []policyAPI.Target{{Kind: "Pod", Names: []string{"my-agent"}}}, obj("Pod", "x", "", "my-agent-7f9c4-"), true},
+		{"pod target does not match another prefix", []policyAPI.Target{{Kind: "Pod", Names: []string{"my-agent"}}}, obj("Pod", "x", "other-my-agent", ""), false},
+		{"version/kind pod target matches by prefix", []policyAPI.Target{{Kind: "v1/Pod", Names: []string{"my-agent"}}}, withAPIVersion(obj("Pod", "x", "my-agent-7f9c4-abcde", ""), "v1"), true},
+		{"replicaset target matches by prefix", []policyAPI.Target{{Kind: "ReplicaSet", Names: []string{"web"}}}, obj("ReplicaSet", "x", "web-5d4f8", ""), true},
+		{"job target matches by prefix", []policyAPI.Target{{Kind: "Job", Names: []string{"backup"}}}, obj("Job", "x", "backup-28391820", ""), true},
+		{"long pod target names use the truncated prefix", []policyAPI.Target{{Kind: "Pod", Names: []string{long}}}, obj("Pod", "x", "", long[:58]), true},
+		{"pod target with a wildcard keeps it", []policyAPI.Target{{Kind: "Pod", Names: []string{"a?c"}}}, obj("Pod", "x", "abcd", ""), false},
+		{"deployment target does not match by prefix", []policyAPI.Target{{Kind: "Deployment", Names: []string{"web"}}}, obj("Deployment", "x", "web2", ""), false},
 		{"subresource target is left out", []policyAPI.Target{{Kind: "Pod/exec", Names: []string{"p"}}}, obj("Pod", "x", "p", ""), false},
 		{"other targets still match next to a subresource target", []policyAPI.Target{{Kind: "Pod/exec"}, {Kind: "Pod", Names: []string{"p"}}}, obj("Pod", "x", "p", ""), true},
 		{"object without a namespace field", []policyAPI.Target{{Kind: "Namespace", Names: []string{"team-a"}}}, map[string]any{"kind": "Namespace", "metadata": map[string]any{"name": "team-a"}}, true},
@@ -235,7 +244,7 @@ func TestTargetsMatchConditionsFormat(t *testing.T) {
     (object.kind == "Deployment" && ` + name + ` == "web") ||
     (object.kind in ["ReplicaSet", "Pod"] && ` + name + `.startsWith("web-"))
   ) ||
-  (object.kind == "Pod" && ` + name + ` == "debug")
+  (object.kind == "Pod" && ` + name + `.startsWith("debug"))
 )`,
 		},
 		{
@@ -279,10 +288,10 @@ func TestTargetsMatchConditionsFormat(t *testing.T) {
 			want:    `false`,
 		},
 		{
-			name:    "two exact names",
+			name:    "two pod names",
 			targets: []policyAPI.Target{{Kind: "Pod", Namespaces: []string{"default"}, Names: []string{"app-a", "app-b"}}},
 			want: `object != null && (
-  (object.metadata.?namespace.orValue("") == "default" && object.kind == "Pod" && ` + name + ` in ["app-a", "app-b"])
+  (object.metadata.?namespace.orValue("") == "default" && object.kind == "Pod" && (` + name + `.startsWith("app-a") || ` + name + `.startsWith("app-b")))
 )`,
 		},
 	}

@@ -54,9 +54,8 @@ func unsupportedTargetKinds(targets []policyAPI.Target) []string {
 	return kinds
 }
 
-// targetExpression matches the target kind by its exact name (or the user's wildcard pattern), and,
-// unless bridge is set, the kinds its controller creates by "<name>-" prefix, because those carry
-// generated names. The kind uses Kyverno's format: "Kind", "version/Kind" or "group/version/Kind",
+// targetExpression matches the target kind by its name (see ownPatterns), and, unless bridge is set,
+// the kinds its controller creates by "<name>-" prefix, because those carry generated names. The kind uses Kyverno's format: "Kind", "version/Kind" or "group/version/Kind",
 // each part may be a wildcard, and "*" is any kind. Missing namespaces or names match any. It
 // reports false for a kind it cannot express.
 func targetExpression(target policyAPI.Target, bridge bool) (string, bool) {
@@ -66,7 +65,7 @@ func targetExpression(target policyAPI.Target, bridge bool) (string, bool) {
 	}
 	kinds := generateExceptionKinds(kind)
 	namespace := anyPattern(objectNamespace, target.Namespaces)
-	own := allOf(apiVersionPattern(group, version), kindPattern(kind), anyPattern(objectName, target.Names))
+	own := allOf(apiVersionPattern(group, version), kindPattern(kind), anyPattern(objectName, ownPatterns(kind, target.Names)))
 	if bridge || len(kinds) == 1 {
 		return "(" + allOf(namespace, own) + ")", true
 	}
@@ -99,6 +98,27 @@ func apiVersionPattern(group, version string) string {
 	default:
 		return anyPattern("object.apiVersion", []string{group + "/" + version})
 	}
+}
+
+// ownPatterns returns the patterns a target's names match for the target kind itself: the exact
+// name, or the user's wildcard pattern. Pods, ReplicaSets and Jobs usually carry generated names,
+// so their names match by prefix, cut to 58 characters like the legacy "name*".
+func ownPatterns(kind string, names []string) []string {
+	if kind != KindPod && kind != KindReplicaSet && kind != KindJob {
+		return names
+	}
+	patterns := make([]string, 0, len(names))
+	for _, name := range names {
+		if strings.ContainsAny(name, "*?") {
+			patterns = append(patterns, name)
+			continue
+		}
+		if len(name) > MaxNameLength {
+			name = truncateName(name)
+		}
+		patterns = append(patterns, name+"*")
+	}
+	return patterns
 }
 
 // derivedPatterns turns target names into patterns for the objects their controllers create.
