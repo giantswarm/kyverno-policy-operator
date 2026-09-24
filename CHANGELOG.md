@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix failing `pre-commit` CI check on `main` by replacing the deprecated Kyverno `AddToScheme` scheme registrations with `Install`, and asserting on `Result.RequeueAfter` instead of the deprecated `Result.Requeue` in controller tests.
 - Legacy `kyverno.io/v2` PolicyExceptions pick up rules added to a ClusterPolicy, including `status.autogen` rules, as soon as the ClusterPolicy changes.
 - Create the legacy chart-operator bypass for ClusterPolicy rules that write their kind as `group/version/Kind`, such as `kyverno.io/v2/PolicyException`.
-- Log the ClusterPolicy controller's messages, which were dropped.
+- Keep every matching ClusterPolicy's entry in the legacy chart-operator bypass. Policies used to overwrite each other's entries.
+- Log the ClusterPolicy, PolicyException and PolicyManifest controllers' messages, which were dropped.
 
 ### Changed
 
