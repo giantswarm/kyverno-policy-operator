@@ -211,3 +211,42 @@ func TestReconcileErrors(t *testing.T) {
 		})
 	}
 }
+
+// A bridge's CEL exception covers only the kinds its targets list; any other gspolex's also covers
+// the pods of a Deployment target.
+func TestReconcileCELBridge(t *testing.T) {
+	ctx := context.Background()
+	pod := obj("Pod", "team-a", "", "app-5d4f8-")
+	tests := []struct {
+		name        string
+		annotations map[string]string
+		labels      map[string]string
+		wantPod     bool
+	}{
+		{"bridge", map[string]string{AnnotationMigratedFrom: "team-a/app"}, map[string]string{ManagedBy: "exception-recommender"}, false},
+		{"annotation without exception-recommender's label", map[string]string{AnnotationMigratedFrom: "team-a/app"}, nil, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := newScheme(t, policyAPI.AddToScheme, policiesv1.Install)
+			gspolex := testGSPolex()
+			gspolex.Annotations = tt.annotations
+			gspolex.Labels = tt.labels
+			c := fake.NewClientBuilder().WithScheme(s).WithObjects(gspolex).Build()
+			r := &PolicyExceptionReconciler{Client: c, Scheme: s, Log: logr.Discard(), DestinationNamespace: "policy-exceptions", MaxJitterPercent: 10, LegacyMode: LegacyAbsent}
+			if _, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(gspolex)}); err != nil {
+				t.Fatal(err)
+			}
+			var cel policiesv1.PolicyException
+			if err := c.Get(ctx, client.ObjectKeyFromObject(gspolex), &cel); err != nil {
+				t.Fatal(err)
+			}
+			if got := eval(t, cel.Spec.MatchConditions, obj("Deployment", "team-a", "app", ""), nil); !got {
+				t.Error("the CEL exception does not match the target Deployment")
+			}
+			if got := eval(t, cel.Spec.MatchConditions, pod, nil); got != tt.wantPod {
+				t.Errorf("matches the Deployment's pod: got %v, want %v", got, tt.wantPod)
+			}
+		})
+	}
+}

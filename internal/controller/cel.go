@@ -34,6 +34,10 @@ func (r *PolicyExceptionReconciler) reconcileCEL(ctx context.Context, gspolex *p
 	if len(unresolved) > 0 {
 		logger.V(1).Info("unresolved policy names", "policies", unresolved)
 	}
+	bridge := isMigrated(gspolex)
+	if bridge {
+		logger.V(1).Info("gspolex migrated by exception-recommender, matching only the kinds its targets list")
+	}
 	if unsupported := unsupportedTargetKinds(gspolex.Spec.Targets); len(unsupported) > 0 {
 		logger.Info("target kinds a CEL exception cannot express are left out", "kinds", unsupported)
 	}
@@ -58,7 +62,7 @@ func (r *PolicyExceptionReconciler) reconcileCEL(ctx context.Context, gspolex *p
 			return err
 		}
 		celException.Spec.PolicyRefs = refs
-		celException.Spec.MatchConditions = translateTargetsToMatchConditions(gspolex.Spec.Targets)
+		celException.Spec.MatchConditions = translateTargetsToMatchConditions(gspolex.Spec.Targets, bridge)
 		return nil
 	})
 	if err != nil {

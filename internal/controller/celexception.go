@@ -26,11 +26,12 @@ const objectNamespace = `object.metadata.?namespace.orValue("")`
 // translateTargetsToMatchConditions turns gspolex targets into one CEL match condition that is true
 // when any target matches, with one target per line. A null object (DELETE) never matches, and no
 // targets match nothing: an exception without match conditions would exempt every resource.
-// Targets with a subresource kind are left out, see unsupportedTargetKinds.
-func translateTargetsToMatchConditions(targets []policyAPI.Target) []admissionregistrationv1.MatchCondition {
+// Targets with a subresource kind are left out, see unsupportedTargetKinds. For a bridge, a gspolex
+// migrated by exception-recommender, the targets already list every kind, so none are derived.
+func translateTargetsToMatchConditions(targets []policyAPI.Target, bridge bool) []admissionregistrationv1.MatchCondition {
 	parts := make([]string, 0, len(targets))
 	for _, target := range targets {
-		if expression, ok := targetExpression(target); ok {
+		if expression, ok := targetExpression(target, bridge); ok {
 			parts = append(parts, expression)
 		}
 	}
@@ -46,19 +47,19 @@ func translateTargetsToMatchConditions(targets []policyAPI.Target) []admissionre
 func unsupportedTargetKinds(targets []policyAPI.Target) []string {
 	var kinds []string
 	for _, target := range targets {
-		if _, ok := targetExpression(target); !ok {
+		if _, ok := targetExpression(target, false); !ok {
 			kinds = append(kinds, target.Kind)
 		}
 	}
 	return kinds
 }
 
-// targetExpression matches the target kind by its exact name (or the user's wildcard pattern), and
-// the kinds its controller creates by "<name>-" prefix, because those carry generated names.
-// The kind uses Kyverno's format: "Kind", "version/Kind" or "group/version/Kind", each part may be
-// a wildcard, and "*" is any kind. Missing namespaces or names match any. It reports false for a
-// kind it cannot express.
-func targetExpression(target policyAPI.Target) (string, bool) {
+// targetExpression matches the target kind by its exact name (or the user's wildcard pattern), and,
+// unless bridge is set, the kinds its controller creates by "<name>-" prefix, because those carry
+// generated names. The kind uses Kyverno's format: "Kind", "version/Kind" or "group/version/Kind",
+// each part may be a wildcard, and "*" is any kind. Missing namespaces or names match any. It
+// reports false for a kind it cannot express.
+func targetExpression(target policyAPI.Target, bridge bool) (string, bool) {
 	group, version, kind, subresource := kubeutils.ParseKindSelector(target.Kind)
 	if kind == "" || subresource != "" {
 		return "", false
@@ -66,7 +67,7 @@ func targetExpression(target policyAPI.Target) (string, bool) {
 	kinds := generateExceptionKinds(kind)
 	namespace := anyPattern(objectNamespace, target.Namespaces)
 	own := allOf(apiVersionPattern(group, version), kindPattern(kind), anyPattern(objectName, target.Names))
-	if len(kinds) == 1 {
+	if bridge || len(kinds) == 1 {
 		return "(" + allOf(namespace, own) + ")", true
 	}
 	derived := allOf(oneOf("object.kind", kinds[1:]), anyPattern(objectName, derivedPatterns(target.Names)))

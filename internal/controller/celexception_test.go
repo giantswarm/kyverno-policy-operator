@@ -135,8 +135,34 @@ func TestTargetsMatchConditions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := eval(t, translateTargetsToMatchConditions(tt.targets), tt.object, nil); got != tt.want {
-				t.Errorf("got %v, want %v; expression: %s", got, tt.want, translateTargetsToMatchConditions(tt.targets)[0].Expression)
+			if got := eval(t, translateTargetsToMatchConditions(tt.targets, false), tt.object, nil); got != tt.want {
+				t.Errorf("got %v, want %v; expression: %s", got, tt.want, translateTargetsToMatchConditions(tt.targets, false)[0].Expression)
+			}
+		})
+	}
+}
+
+// TestBridgeMatchConditions covers gspolexes migrated by exception-recommender, whose targets
+// already list every kind the legacy exception covered, so no kinds are derived.
+func TestBridgeMatchConditions(t *testing.T) {
+	deployment := []policyAPI.Target{{Kind: "Deployment", Namespaces: []string{"default"}, Names: []string{"web"}}}
+	tests := []struct {
+		name   string
+		bridge bool
+		object any
+		want   bool
+	}{
+		{"bridge matches the deployment", true, obj("Deployment", "default", "web", ""), true},
+		{"bridge does not match the deployment's replicasets", true, obj("ReplicaSet", "default", "web-5d4f8", ""), false},
+		{"bridge does not match the deployment's pods", true, obj("Pod", "default", "", "web-5d4f8-"), false},
+		{"non-bridge matches the deployment's replicasets", false, obj("ReplicaSet", "default", "web-5d4f8", ""), true},
+		{"non-bridge matches the deployment's pods", false, obj("Pod", "default", "", "web-5d4f8-"), true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			conds := translateTargetsToMatchConditions(deployment, tt.bridge)
+			if got := eval(t, conds, tt.object, nil); got != tt.want {
+				t.Errorf("got %v, want %v; expression: %s", got, tt.want, conds[0].Expression)
 			}
 		})
 	}
@@ -160,7 +186,7 @@ func TestLossyTranslations(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			targets := []policyAPI.Target{tt.target}
-			if got := eval(t, translateTargetsToMatchConditions(targets), tt.object, nil); got {
+			if got := eval(t, translateTargetsToMatchConditions(targets, false), tt.object, nil); got {
 				t.Errorf("the CEL exception exempts %v", tt.object)
 			}
 			legacy := translateTargetsToResourceFilters(targets)[0].Names
@@ -185,6 +211,7 @@ func TestTargetsMatchConditionsFormat(t *testing.T) {
 	tests := []struct {
 		name    string
 		targets []policyAPI.Target
+		bridge  bool
 		want    string
 	}{
 		{
@@ -239,6 +266,14 @@ func TestTargetsMatchConditionsFormat(t *testing.T) {
 )`,
 		},
 		{
+			name:    "bridge",
+			targets: []policyAPI.Target{{Kind: "Deployment", Names: []string{"web"}}},
+			bridge:  true,
+			want: `object != null && (
+  (object.kind == "Deployment" && ` + name + ` == "web")
+)`,
+		},
+		{
 			name:    "a subresource target is left out",
 			targets: []policyAPI.Target{{Kind: "Pod/exec", Names: []string{"web"}}},
 			want:    `false`,
@@ -253,7 +288,7 @@ func TestTargetsMatchConditionsFormat(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := translateTargetsToMatchConditions(tt.targets)[0].Expression
+			got := translateTargetsToMatchConditions(tt.targets, tt.bridge)[0].Expression
 			if got != tt.want {
 				t.Errorf("got:\n%s\nwant:\n%s", got, tt.want)
 			}
@@ -323,9 +358,9 @@ func kyvernoExceptionEnv(t *testing.T) *cel.Env {
 func TestMatchConditionsCompileInKyvernoEnv(t *testing.T) {
 	env := kyvernoExceptionEnv(t)
 	for name, conds := range map[string][]admissionregistrationv1.MatchCondition{
-		"targets":        translateTargetsToMatchConditions([]policyAPI.Target{{Kind: "Deployment", Namespaces: []string{"default", "team-*"}, Names: []string{"a", "b-*", "c?d"}}}),
-		"kind formats":   translateTargetsToMatchConditions([]policyAPI.Target{{Kind: "apps/v1/Deployment"}, {Kind: "v1/Pod"}, {Kind: "*"}, {Kind: "Deploy*"}}),
-		"no targets":     translateTargetsToMatchConditions(nil),
+		"targets":        translateTargetsToMatchConditions([]policyAPI.Target{{Kind: "Deployment", Namespaces: []string{"default", "team-*"}, Names: []string{"a", "b-*", "c?d"}}}, false),
+		"kind formats":   translateTargetsToMatchConditions([]policyAPI.Target{{Kind: "apps/v1/Deployment"}, {Kind: "v1/Pod"}, {Kind: "*"}, {Kind: "Deploy*"}}, false),
+		"no targets":     translateTargetsToMatchConditions(nil, false),
 		"chart-operator": chartOperatorMatchConditions([]string{"Namespace"}),
 	} {
 		t.Run(name, func(t *testing.T) {
