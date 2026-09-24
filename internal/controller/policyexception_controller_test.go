@@ -25,6 +25,7 @@ import (
 	kyvernov2 "github.com/kyverno/kyverno/api/kyverno/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -353,6 +354,30 @@ var _ = Describe("Converting GSPolicyException to Kyverno Policy Exception", fun
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(k8sClient.Get(ctx, req.NamespacedName, &celException)).To(Succeed())
+		})
+
+		It("does not change an unmanaged CEL PolicyException with the same name", func() {
+			unmanaged := policiesv1.PolicyException{
+				ObjectMeta: metav1.ObjectMeta{Name: gsPolicyException.Name, Namespace: "default"},
+				Spec: policiesv1.PolicyExceptionSpec{
+					PolicyRefs: []policiesv1.PolicyRef{{Name: "not-managed-by-kpo", Kind: "ValidatingPolicy"}},
+				},
+			}
+			Expect(k8sClient.Create(ctx, &unmanaged)).To(Succeed())
+			nameTaken := controller.GenerationErrors.WithLabelValues(controller.APICEL, "name_taken")
+			before := testutil.ToFloat64(nameTaken)
+
+			_, err := r.Reconcile(ctx, req)
+			Expect(err).To(MatchError(ContainSubstring("not managed by kyverno-policy-operator")))
+			Expect(testutil.ToFloat64(nameTaken)).To(Equal(before + 1))
+
+			Expect(k8sClient.Get(ctx, req.NamespacedName, &celException)).To(Succeed())
+			Expect(celException.Spec.PolicyRefs).To(Equal(unmanaged.Spec.PolicyRefs))
+			Expect(celException.Spec.MatchConditions).To(BeEmpty())
+			Expect(celException.Labels).NotTo(HaveKey("app.kubernetes.io/managed-by"))
+			Expect(celException.OwnerReferences).To(BeEmpty())
+			// The legacy exception is still written.
+			Expect(k8sClient.Get(ctx, req.NamespacedName, &kyvernov2.PolicyException{})).To(Succeed())
 		})
 	})
 })

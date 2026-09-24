@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	stderrors "errors"
 	"time"
 
 	policyAPI "github.com/giantswarm/policy-api/api/v1alpha1"
@@ -84,6 +85,26 @@ func sourceOf(p *policyAPI.PolicyException) string {
 		return SourceExceptionRecommender
 	}
 	return SourceGSPolex
+}
+
+// errNotManaged stops KPO from changing an object with a generated name that someone else created.
+var errNotManaged = stderrors.New("object exists and is not managed by kyverno-policy-operator, leaving it unchanged")
+
+// checkManaged returns errNotManaged for an existing object without KPO's managed-by label. Call it
+// first in a CreateOrUpdate mutate function, so nothing is written.
+func checkManaged(obj metav1.Object) error {
+	if obj.GetResourceVersion() != "" && obj.GetLabels()[ManagedBy] != ComponentName {
+		return errNotManaged
+	}
+	return nil
+}
+
+// applyFailedReason is the generation error reason for a failed CreateOrUpdate.
+func applyFailedReason(err error) string {
+	if stderrors.Is(err, errNotManaged) {
+		return "name_taken"
+	}
+	return "apply_failed"
 }
 
 // deleteManaged deletes obj if it exists and KPO manages it. Objects KPO did not create are never touched.

@@ -22,6 +22,7 @@ import (
 	policiesv1 "github.com/kyverno/api/api/policies.kyverno.io/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -82,5 +83,28 @@ var _ = Describe("CEL chart-operator bypass", func() {
 		_, err = r.Reconcile(ctx, ctrl.Request{})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(apierrors.IsNotFound(k8sClient.Get(ctx, key, &bypass))).To(BeTrue())
+	})
+
+	It("does not change an unmanaged PolicyException with the bypass name", func() {
+		unmanaged := policiesv1.PolicyException{
+			ObjectMeta: metav1.ObjectMeta{Name: key.Name, Namespace: key.Namespace},
+			Spec: policiesv1.PolicyExceptionSpec{
+				PolicyRefs: []policiesv1.PolicyRef{{Name: "not-managed-by-kpo", Kind: "ValidatingPolicy"}},
+			},
+		}
+		Expect(k8sClient.Create(ctx, &unmanaged)).To(Succeed())
+		DeferCleanup(func() { _ = k8sClient.Delete(ctx, &unmanaged) })
+		nameTaken := controller.GenerationErrors.WithLabelValues(controller.APICEL, "name_taken")
+		before := testutil.ToFloat64(nameTaken)
+
+		_, err := r.Reconcile(ctx, ctrl.Request{})
+		Expect(err).To(MatchError(ContainSubstring("not managed by kyverno-policy-operator")))
+		Expect(testutil.ToFloat64(nameTaken)).To(Equal(before + 1))
+
+		var bypass policiesv1.PolicyException
+		Expect(k8sClient.Get(ctx, key, &bypass)).To(Succeed())
+		Expect(bypass.Spec.PolicyRefs).To(Equal(unmanaged.Spec.PolicyRefs))
+		Expect(bypass.Spec.MatchConditions).To(BeEmpty())
+		Expect(bypass.Labels).NotTo(HaveKey("app.kubernetes.io/managed-by"))
 	})
 })

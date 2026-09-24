@@ -45,6 +45,9 @@ func (r *PolicyExceptionReconciler) reconcileCEL(ctx context.Context, gspolex *p
 		return nil
 	}
 	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, &celException, func() error {
+		if err := checkManaged(&celException); err != nil {
+			return err
+		}
 		setManagedLabels(&celException, sourceOf(gspolex))
 		setAnnotation(&celException, AnnotationMigratedFrom, gspolex.Annotations[AnnotationMigratedFrom])
 		setAnnotation(&celException, AnnotationUnresolvedPolicies, strings.Join(unresolved, ","))
@@ -57,7 +60,7 @@ func (r *PolicyExceptionReconciler) reconcileCEL(ctx context.Context, gspolex *p
 	})
 	if err != nil {
 		logger.Error(err, "failed to reconcile CEL PolicyException")
-		GenerationErrors.WithLabelValues(APICEL, "apply_failed").Inc()
+		GenerationErrors.WithLabelValues(APICEL, applyFailedReason(err)).Inc()
 		return err
 	}
 	if op != controllerutil.OperationResultNone {

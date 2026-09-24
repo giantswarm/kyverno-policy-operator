@@ -93,7 +93,9 @@ covers the pods of `app-10`. The `kyverno.io/v2` PolicyException keeps the old `
 Both generated exceptions are labelled `app.kubernetes.io/managed-by: kyverno-policy-operator` and
 `policy.giantswarm.io/source: gspolex|exception-recommender|chart-operator`. The operator only ever
 deletes a PolicyException that carries the `managed-by` label; one created by hand or by another
-tool is left alone.
+tool is left alone. It also never changes a `policies.kyverno.io/v1` PolicyException without that
+label: if one already has the generated name, the operator logs an error and counts it as
+`reason="name_taken"` instead.
 
 The generated `policies.kyverno.io/v1` PolicyException can also carry two annotations:
 

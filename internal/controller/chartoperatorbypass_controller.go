@@ -75,6 +75,9 @@ func (r *ChartOperatorBypassReconciler) Reconcile(ctx context.Context, _ ctrl.Re
 	logger.V(1).Info("ValidatingPolicies referenced", "count", len(refs))
 
 	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, &bypass, func() error {
+		if err := checkManaged(&bypass); err != nil {
+			return err
+		}
 		setManagedLabels(&bypass, SourceChartOperator)
 		bypass.Spec.PolicyRefs = refs
 		bypass.Spec.MatchConditions = chartOperatorMatchConditions(r.Kinds)
@@ -82,7 +85,7 @@ func (r *ChartOperatorBypassReconciler) Reconcile(ctx context.Context, _ ctrl.Re
 	})
 	if err != nil {
 		logger.Error(err, "failed to reconcile chart-operator bypass")
-		GenerationErrors.WithLabelValues(APICEL, "apply_failed").Inc()
+		GenerationErrors.WithLabelValues(APICEL, applyFailedReason(err)).Inc()
 		return ctrl.Result{}, err
 	}
 	if op != controllerutil.OperationResultNone {
