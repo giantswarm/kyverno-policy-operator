@@ -287,8 +287,8 @@ github.com/fxamacker/cbor/v2 v2.9.1 h1:2rWm8B193Ll4VdjsJY28jxs70IdDsHRWgQYAI80+r
 github.com/fxamacker/cbor/v2 v2.9.1/go.mod h1:vM4b+DJCtHn+zz7h3FFp/hDAI9WNWCsZj23V5ytsSxQ=
 github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32 h1:Mn26/9ZMNWSw9C9ERFA1PUxfmGpolnw2v0bKOREu5ew=
 github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32/go.mod h1:GIjDIg/heH5DOkXY3YJ/wNhfHsQHoXGjl8G8amsYQ1I=
-github.com/giantswarm/policy-api v0.0.12 h1:RWnW/1/BoKNR4yKJgzbOiusCPVAHIPHKB5r8FQZqXtY=
-github.com/giantswarm/policy-api v0.0.12/go.mod h1:x2uqOk/Ej+AztLDqJ4eeI/eNBBYEQF0GxdQn2Cbgd2Q=
+github.com/giantswarm/policy-api v0.1.0 h1:YDtU1Krl5GIx3yskCADCXhAAeud3jyBQsxbqwecg288=
+github.com/giantswarm/policy-api v0.1.0/go.mod h1:T5Gf3xJM4uKMKKWzG4nmexdAJ9xVAp7qW58v5wfTcjE=
 github.com/gkampitakis/ciinfo v0.3.2 h1:JcuOPk8ZU7nZQjdUhctuhQofk7BGHuIy0c9Ez8BNhXs=
 github.com/gkampitakis/ciinfo v0.3.2/go.mod h1:1NIwaOcFChN4fa/B0hEBdAb6npDlFL8Bwx4dfRLRqAo=
 github.com/gkampitakis/go-diff v1.3.2 h1:Qyn0J9XJSDTgnsgHRdz9Zp24RaJeKMUHg2+PDZZdC4M=
