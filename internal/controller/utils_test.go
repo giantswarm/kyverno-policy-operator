@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"testing"
 
@@ -10,11 +11,14 @@ import (
 	policiesv1 "github.com/kyverno/api/api/policies.kyverno.io/v1"
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 	kyvernov2 "github.com/kyverno/kyverno/api/kyverno/v2"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
@@ -197,5 +201,127 @@ func TestFormatNamesSkipsEmptyNames(t *testing.T) {
 	}
 	if got, want := formatNames([]string{"", "foo"}), []string{"foo*"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+var managedKey = types.NamespacedName{Namespace: "policy-exceptions", Name: "app"}
+
+// managedCELException is a CEL PolicyException that KPO created.
+func managedCELException() *policiesv1.PolicyException {
+	return &policiesv1.PolicyException{ObjectMeta: metav1.ObjectMeta{
+		Name: managedKey.Name, Namespace: managedKey.Namespace, Labels: map[string]string{ManagedBy: ComponentName},
+	}}
+}
+
+// celExceptionRef names managedKey without any labels, as the reconcilers pass it to deleteManaged.
+func celExceptionRef() *policiesv1.PolicyException {
+	return &policiesv1.PolicyException{ObjectMeta: metav1.ObjectMeta{Name: managedKey.Name, Namespace: managedKey.Namespace}}
+}
+
+func celOnlyScheme(t *testing.T) *runtime.Scheme {
+	t.Helper()
+	return newScheme(t, policiesv1.Install)
+}
+
+// An object whose labels are removed between the check and the delete is checked again and kept,
+// also with a client that decodes into the labels read by the first attempt.
+func TestDeleteManagedKeepsAnObjectThatLostItsLabels(t *testing.T) {
+	// arrange
+	ctx := context.Background()
+	deletes := 0
+	funcs := relabelBeforeFirstDelete(nil, &deletes)
+	funcs.Get = mergingGet().Get
+	c := fake.NewClientBuilder().WithScheme(celOnlyScheme(t)).WithObjects(managedCELException()).WithInterceptorFuncs(funcs).Build()
+
+	// act
+	err := deleteManaged(ctx, c, celExceptionRef())
+
+	// assert
+	require.NoError(t, err)
+	assert.Equal(t, 1, deletes)
+	var kept policiesv1.PolicyException
+	require.NoError(t, c.Get(ctx, managedKey, &kept), "the object was deleted")
+	assert.Empty(t, kept.Labels)
+}
+
+// A delete that conflicts is retried, and the object is deleted once it is still managed.
+func TestDeleteManagedRetriesAConflict(t *testing.T) {
+	// arrange
+	ctx := context.Background()
+	deletes := 0
+	c := fake.NewClientBuilder().WithScheme(celOnlyScheme(t)).WithObjects(managedCELException()).
+		WithInterceptorFuncs(conflictingDeletes(1, &deletes)).Build()
+
+	// act
+	err := deleteManaged(ctx, c, celExceptionRef())
+
+	// assert
+	require.NoError(t, err)
+	assert.Equal(t, 2, deletes)
+	err = c.Get(ctx, managedKey, &policiesv1.PolicyException{})
+	assert.True(t, apierrors.IsNotFound(err), "the object was not deleted: %v", err)
+}
+
+// An object that keeps changing is not deleted, and the conflict is returned.
+func TestDeleteManagedGivesUpOnConstantConflicts(t *testing.T) {
+	// arrange
+	ctx := context.Background()
+	deletes := 0
+	c := fake.NewClientBuilder().WithScheme(celOnlyScheme(t)).WithObjects(managedCELException()).
+		WithInterceptorFuncs(conflictingDeletes(1000, &deletes)).Build()
+
+	// act
+	err := deleteManaged(ctx, c, celExceptionRef())
+
+	// assert
+	assert.True(t, apierrors.IsConflict(err), "got %v, want a conflict", err)
+	assert.Equal(t, retry.DefaultRetry.Steps, deletes)
+	assert.NoError(t, c.Get(ctx, managedKey, &policiesv1.PolicyException{}), "the object was deleted")
+}
+
+func TestDeleteManagedGetFails(t *testing.T) {
+	// arrange
+	ctx := context.Background()
+	errAPI := errors.New("API server unavailable")
+	deletes := 0
+	funcs := failGet[*policiesv1.PolicyException](errAPI)
+	funcs.Delete = conflictingDeletes(0, &deletes).Delete
+	c := fake.NewClientBuilder().WithScheme(celOnlyScheme(t)).WithObjects(managedCELException()).WithInterceptorFuncs(funcs).Build()
+
+	// act
+	err := deleteManaged(ctx, c, celExceptionRef())
+
+	// assert
+	require.ErrorIs(t, err, errAPI)
+	assert.Zero(t, deletes)
+}
+
+// The legacy chart-operator bypass is deleted only when KPO manages it.
+func TestDeleteLegacyChartOperatorBypass(t *testing.T) {
+	key := types.NamespacedName{Namespace: ChartOperatorBypassNamespace, Name: ChartOperatorBypassName}
+	tests := []struct {
+		name        string
+		labels      map[string]string
+		wantDeleted bool
+	}{
+		{"managed", map[string]string{ManagedBy: ComponentName}, true},
+		{"not managed", map[string]string{ManagedBy: "someone-else"}, false},
+		{"without labels", nil, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// arrange
+			ctx := context.Background()
+			bypass := &kyvernov2.PolicyException{ObjectMeta: metav1.ObjectMeta{Name: key.Name, Namespace: key.Namespace, Labels: tt.labels}}
+			c := fake.NewClientBuilder().WithScheme(newScheme(t, kyvernov2.Install)).WithObjects(bypass).Build()
+
+			// act
+			err := DeleteLegacyChartOperatorBypass(ctx, c)
+
+			// assert
+			require.NoError(t, err)
+			err = c.Get(ctx, key, &kyvernov2.PolicyException{})
+			assert.Equal(t, tt.wantDeleted, apierrors.IsNotFound(err), "get error: %v", err)
+		})
 	}
 }

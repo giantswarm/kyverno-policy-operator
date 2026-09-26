@@ -11,6 +11,7 @@ import (
 	"github.com/google/cel-go/common/types"
 	kcompiler "github.com/kyverno/kyverno/pkg/cel/compiler"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apiservercel "k8s.io/apiserver/pkg/cel"
@@ -76,6 +77,7 @@ func TestTargetsMatchConditions(t *testing.T) {
 	gvk := []policyAPI.Target{{Kind: "apps/v1/Deployment", Names: []string{"app"}}}
 	versionKind := []policyAPI.Target{{Kind: "v1/Pod", Names: []string{"p"}}}
 	anyKind := []policyAPI.Target{{Kind: "*", Names: []string{"app"}}}
+	cronJob := []policyAPI.Target{{Kind: "CronJob", Namespaces: []string{"x"}, Names: []string{"backup"}}}
 	tests := []struct {
 		name    string
 		targets []policyAPI.Target
@@ -161,6 +163,22 @@ func TestTargetsMatchConditions(t *testing.T) {
 		{"namespace wildcard on a namespace target is anchored", []policyAPI.Target{{Kind: "Namespace", Namespaces: []string{"team-*"}}}, obj("Namespace", "", "my-team-a", ""), false},
 		{"namespaced kinds still use their namespace", []policyAPI.Target{{Kind: "Pod", Namespaces: []string{"team-a"}}}, obj("Pod", "team-b", "team-a", ""), false},
 		{"object without a namespace field", []policyAPI.Target{{Kind: "Namespace", Names: []string{"team-a"}}}, map[string]any{"kind": "Namespace", "metadata": map[string]any{"name": "team-a"}}, true},
+		{"cronjob target", cronJob, obj("CronJob", "x", "backup", ""), true},
+		{"job of a cronjob target", cronJob, obj("Job", "x", "backup-28391820", ""), true},
+		{"pod of a cronjob target", cronJob, obj("Pod", "x", "", "backup-28391820-"), true},
+		{"job of a similarly named cronjob is not exempt", cronJob, obj("Job", "x", "backup2-28391820", ""), false},
+		// Known: "<name>-" also covers the pods of another Deployment whose name starts with "<name>-".
+		{"pod of a deployment named with the target name as prefix", deployment, obj("Pod", "default", "", "test-app-1-api-5d4f8-"), true},
+		{"quote and backslash in a namespace are literal", []policyAPI.Target{{Kind: "Pod", Namespaces: []string{`n"s\`}}}, obj("Pod", `n"s\`, "p", ""), true},
+		{"quote and backslash in a namespace match nothing else", []policyAPI.Target{{Kind: "Pod", Namespaces: []string{`n"s\`}}}, obj("Pod", `n"s`, "p", ""), false},
+		{"quote in a kind is literal", []policyAPI.Target{{Kind: `Po"d`}}, obj(`Po"d`, "x", "p", ""), true},
+		{"quote in a kind matches nothing else", []policyAPI.Target{{Kind: `Po"d`}}, obj("Po", "x", "p", ""), false},
+		{"a name cannot inject CEL", []policyAPI.Target{{Kind: "ConfigMap", Names: []string{`a" || true || "`}}}, obj("ConfigMap", "x", "other", ""), false},
+		{"a namespace cannot inject CEL", []policyAPI.Target{{Kind: "ConfigMap", Namespaces: []string{`a" || true || "`}}}, obj("ConfigMap", "x", "c", ""), false},
+		{"a wildcard name cannot inject CEL", []policyAPI.Target{{Kind: "ConfigMap", Names: []string{`a" || true || "?`}}}, obj("ConfigMap", "x", "other", ""), false},
+		{"name * matches any name", []policyAPI.Target{{Kind: "ConfigMap", Names: []string{"*"}}}, obj("ConfigMap", "x", "anything", ""), true},
+		{"namespace * matches any namespace", []policyAPI.Target{{Kind: "ConfigMap", Namespaces: []string{"*"}}}, obj("ConfigMap", "anywhere", "c", ""), true},
+		{"namespace * also matches a cluster-scoped object", []policyAPI.Target{{Kind: "*", Namespaces: []string{"*"}}}, obj("ClusterRole", "", "c", ""), true},
 		{"namespace filter on an object without a namespace field", []policyAPI.Target{{Kind: "Namespace", Namespaces: []string{"x"}}}, map[string]any{"kind": "Namespace", "metadata": map[string]any{"name": "team-a"}}, false},
 	}
 	for _, tt := range tests {
@@ -279,6 +297,22 @@ func TestLossyTranslations(t *testing.T) {
 			}
 		})
 	}
+}
+
+// A group/version/kind Deployment target derives ReplicaSets in the CEL exception, but not in the
+// legacy one, whose derived kinds are looked up by the whole "apps/v1/Deployment" string.
+func TestGroupVersionKindTargetDerivesReplicaSetsOnlyInCEL(t *testing.T) {
+	// arrange
+	targets := []policyAPI.Target{{Kind: "apps/v1/Deployment", Names: []string{"web"}}}
+	replicaSet := withAPIVersion(obj("ReplicaSet", "x", "web-5d4f8", ""), "apps/v1")
+
+	// act
+	cel := eval(t, translateTargetsToMatchConditions(targets, false), replicaSet, nil)
+	legacy := translateTargetsToResourceFilters(targets)[0]
+
+	// assert
+	assert.True(t, cel, "the CEL exception does not cover the Deployment's ReplicaSets")
+	assert.Equal(t, []string{"apps/v1/Deployment", "Pod"}, legacy.Kinds)
 }
 
 func TestUnsupportedTargetKinds(t *testing.T) {
@@ -417,6 +451,9 @@ func TestChartOperatorMatchConditions(t *testing.T) {
 		{"chart-operator creates a namespace", ns, req(ChartOperatorUsername, "CREATE"), true},
 		{"chart-operator updates a namespace", ns, req(ChartOperatorUsername, "UPDATE"), true},
 		{"chart-operator deletes", nil, req(ChartOperatorUsername, "DELETE"), false},
+		{"chart-operator deletes with an object", ns, req(ChartOperatorUsername, "DELETE"), false},
+		{"chart-operator connects", ns, req(ChartOperatorUsername, "CONNECT"), false},
+		{"request without a user", ns, map[string]any{"operation": "CREATE"}, false},
 		{"another user", ns, req("system:serviceaccount:default:x", "CREATE"), false},
 		{"another kind", obj("Pod", "giantswarm", "p", ""), req(ChartOperatorUsername, "CREATE"), false},
 		{"background scan has no request", ns, nil, false},
@@ -451,6 +488,24 @@ func kyvernoExceptionEnv(t *testing.T) *cel.Env {
 		t.Fatal(err)
 	}
 	return env
+}
+
+// A background scan evaluates the bypass with a null request. In Kyverno's typed environment, reading
+// request.userInfo from a null request is an error, so the condition must check request first.
+func TestChartOperatorMatchConditionsWithoutRequestInKyvernoEnv(t *testing.T) {
+	// arrange
+	env := kyvernoExceptionEnv(t)
+	ast, iss := env.Compile(chartOperatorMatchConditions([]string{"Namespace"})[0].Expression)
+	require.NoError(t, iss.Err())
+	prg, err := env.Program(ast)
+	require.NoError(t, err)
+
+	// act
+	out, _, err := prg.Eval(map[string]any{"object": obj("Namespace", "", "team-a", ""), "request": types.NullValue})
+
+	// assert
+	require.NoError(t, err)
+	assert.Equal(t, false, out.Value())
 }
 
 // TestMatchConditionsCompileInKyvernoEnv compiles the generated conditions in the environment
