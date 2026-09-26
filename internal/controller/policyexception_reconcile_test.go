@@ -12,6 +12,8 @@ import (
 	kyvernov1 "github.com/kyverno/kyverno/api/kyverno/v1"
 	kyvernov2 "github.com/kyverno/kyverno/api/kyverno/v2"
 	"github.com/prometheus/client_golang/prometheus/testutil"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -127,19 +129,6 @@ func TestReconcileErrors(t *testing.T) {
 		wantCEL    bool
 		wantLegacy bool
 	}{
-		{
-			// A gspolex outside the destination namespace cannot own the generated exceptions.
-			// This is also what a same-name gspolex in another namespace runs into.
-			name: "gspolex outside the destination namespace",
-			gspolex: func() *policyAPI.PolicyException {
-				g := testGSPolex()
-				g.Namespace = "team-a"
-				return g
-			},
-			objects: []client.Object{clusterPolicy},
-			wantErr: "cross-namespace owner references are disallowed",
-			api:     APICEL, reason: "apply_failed",
-		},
 		{
 			name:    "CEL policy lookup fails, the legacy exception is still written",
 			gspolex: testGSPolex,
@@ -302,6 +291,61 @@ func TestReconcileEmptyTargetNames(t *testing.T) {
 			if got := legacy.Spec.Match.Any[0].Names; len(got) != 1 || got[0] != "foo*" {
 				t.Errorf("legacy names: got %v, want [foo*]", got)
 			}
+		})
+	}
+}
+
+// A gspolex outside the destination namespace is skipped. The exceptions of the same-name gspolex in
+// the destination namespace are neither changed nor deleted, whether or not the other one lists
+// policies and targets.
+func TestReconcileSkipsGSPolexOutsideDestinationNamespace(t *testing.T) {
+	ctx := context.Background()
+	key := types.NamespacedName{Namespace: "policy-exceptions", Name: "app"}
+	tests := []struct {
+		name    string
+		gspolex func() *policyAPI.PolicyException
+	}{
+		{"with policies and targets", testGSPolex},
+		{"without policies", func() *policyAPI.PolicyException {
+			g := testGSPolex()
+			g.Spec.Policies = nil
+			return g
+		}},
+		{"without targets", func() *policyAPI.PolicyException {
+			g := testGSPolex()
+			g.Spec.Targets = nil
+			return g
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// arrange
+			s := newScheme(t, policyAPI.AddToScheme, policiesv1.Install, kyvernov1.Install, kyvernov2.Install)
+			owner := testGSPolex()
+			other := tt.gspolex()
+			other.Namespace = "team-b"
+			c := fake.NewClientBuilder().WithScheme(s).
+				WithObjects(owner, other, &kyvernov1.ClusterPolicy{ObjectMeta: metav1.ObjectMeta{Name: "disallow-privileged"}}).Build()
+			r := &PolicyExceptionReconciler{Client: c, Scheme: s, Log: logr.Discard(), DestinationNamespace: "policy-exceptions", MaxJitterPercent: 10, LegacyMode: LegacyWrite}
+			_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(owner)})
+			require.NoError(t, err)
+			var celBefore policiesv1.PolicyException
+			require.NoError(t, c.Get(ctx, key, &celBefore))
+			var legacyBefore kyvernov2.PolicyException
+			require.NoError(t, c.Get(ctx, key, &legacyBefore))
+
+			// act
+			result, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(other)})
+
+			// assert
+			require.NoError(t, err)
+			assert.Zero(t, result.RequeueAfter)
+			var celAfter policiesv1.PolicyException
+			require.NoError(t, c.Get(ctx, key, &celAfter), "the CEL exception was deleted")
+			assert.Equal(t, celBefore.ResourceVersion, celAfter.ResourceVersion)
+			var legacyAfter kyvernov2.PolicyException
+			require.NoError(t, c.Get(ctx, key, &legacyAfter), "the legacy exception was deleted")
+			assert.Equal(t, legacyBefore.ResourceVersion, legacyAfter.ResourceVersion)
 		})
 	}
 }
