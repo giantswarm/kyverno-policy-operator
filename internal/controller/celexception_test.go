@@ -10,6 +10,7 @@ import (
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/common/types"
 	kcompiler "github.com/kyverno/kyverno/pkg/cel/compiler"
+	"github.com/stretchr/testify/assert"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apiservercel "k8s.io/apiserver/pkg/cel"
@@ -206,6 +207,46 @@ func TestBridgeMatchConditions(t *testing.T) {
 	}
 }
 
+// TestBridgeTargetNames covers the names of Pod, ReplicaSet and Job targets in a bridge. The legacy
+// exception it was migrated from matched them as written, so the bridge adds no trailing "*" and
+// does not cut them to 58 characters.
+func TestBridgeTargetNames(t *testing.T) {
+	long := strings.Repeat("a", 70)
+	podWeb := policyAPI.Target{Kind: "Pod", Names: []string{"web"}}
+	podLong := policyAPI.Target{Kind: "Pod", Names: []string{long}}
+	podWildcard := policyAPI.Target{Kind: "Pod", Names: []string{"web-*"}}
+	tests := []struct {
+		name   string
+		target policyAPI.Target
+		object map[string]any
+		want   bool
+	}{
+		{"pod with the exact name", podWeb, obj("Pod", "x", "web", ""), true},
+		{"pod with a longer name", podWeb, obj("Pod", "x", "webhook", ""), false},
+		{"pod with a generated suffix", podWeb, obj("Pod", "x", "web-7f9c4-abcde", ""), false},
+		{"pod named by the API server", podWeb, obj("Pod", "x", "", "web-"), false},
+		{"replicaset with a longer name", policyAPI.Target{Kind: "ReplicaSet", Names: []string{"web"}}, obj("ReplicaSet", "x", "web-evil", ""), false},
+		{"group/version/kind job with a longer name", policyAPI.Target{Kind: "batch/v1/Job", Names: []string{"web"}}, withAPIVersion(obj("Job", "x", "web2", ""), "batch/v1"), false},
+		{"version/kind pod with a longer name", policyAPI.Target{Kind: "v1/Pod", Names: []string{"web"}}, withAPIVersion(obj("Pod", "x", "webhook", ""), "v1"), false},
+		{"long name matches itself", podLong, obj("Pod", "x", long, ""), true},
+		{"long name is not cut to 58 characters", podLong, obj("Pod", "x", long[:58]+"zz", ""), false},
+		{"user wildcard", podWildcard, obj("Pod", "x", "web-1", ""), true},
+		{"user wildcard is anchored", podWildcard, obj("Pod", "x", "webhook", ""), false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// arrange
+			conds := translateTargetsToMatchConditions([]policyAPI.Target{tt.target}, true)
+
+			// act
+			got := eval(t, conds, tt.object, nil)
+
+			// assert
+			assert.Equal(t, tt.want, got, "expression: %s", conds[0].Expression)
+		})
+	}
+}
+
 // TestLossyTranslations lists the objects the legacy exception of the same gspolex exempts
 // through its "name*" patterns, but the CEL exception does not. The CEL matching is stricter on
 // purpose, except for subresource targets, which it cannot express.
@@ -323,6 +364,14 @@ func TestTargetsMatchConditionsFormat(t *testing.T) {
 			bridge:  true,
 			want: `object != null && (
   (object.kind == "Deployment" && ` + name + ` == "web")
+)`,
+		},
+		{
+			name:    "bridge pod",
+			targets: []policyAPI.Target{{Kind: "Pod", Names: []string{"web"}}},
+			bridge:  true,
+			want: `object != null && (
+  (object.kind == "Pod" && ` + name + ` == "web")
 )`,
 		},
 		{
