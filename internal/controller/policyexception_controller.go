@@ -133,7 +133,7 @@ func generateExceptionKinds(resourceKind string) []string {
 // SetupWithManager sets up the controller with the Manager.
 func (r *PolicyExceptionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	b := ctrl.NewControllerManagedBy(mgr).For(&policyAPI.PolicyException{}).Owns(&policiesv1.PolicyException{})
-	if r.LegacyMode == LegacyWrite {
+	if PlanStartup(r.LegacyMode, false, nil).LegacyWatches {
 		// No predicate: status.autogen changes do not bump the ClusterPolicy's generation.
 		b = b.Owns(&kyvernov2.PolicyException{}).
 			Watches(&kyvernov1.ClusterPolicy{}, handler.EnqueueRequestsFromMapFunc(r.gspolexesForClusterPolicy))

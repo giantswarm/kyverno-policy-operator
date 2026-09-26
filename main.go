@@ -141,6 +141,7 @@ func main() {
 		os.Exit(1)
 	}
 	setupLog.Info("legacy PolicyExceptions", "mode", legacyMode)
+	startup := controller.PlanStartup(legacyMode, polmanEnabled, chartOperatorExceptionKinds)
 
 	metrics.Registry.MustRegister(controller.GenerationErrors, &controller.ExceptionCollector{
 		Reader:     mgr.GetClient(),
@@ -148,7 +149,7 @@ func main() {
 		Log:        ctrl.Log.WithName("metrics"),
 	})
 
-	if legacyMode == controller.LegacyCleanup {
+	if startup.DeleteLegacyBypass {
 		directClient, err := client.New(mgr.GetConfig(), client.Options{Scheme: mgr.GetScheme()})
 		if err == nil {
 			err = controller.DeleteLegacyChartOperatorBypass(context.Background(), directClient)
@@ -172,10 +173,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	if polmanEnabled && legacyMode != controller.LegacyWrite {
+	if polmanEnabled && !startup.PolicyManifest {
 		setupLog.Info("PolicyManifests enabled but legacy PolicyExceptions are not written; not starting the PolicyManifest controller", "mode", legacyMode)
 	}
-	if polmanEnabled && legacyMode == controller.LegacyWrite {
+	if startup.PolicyManifest {
 		setupLog.Info("PolicyManifests enabled, setting up PolicyManifest controller")
 		if err = (&controller.PolicyManifestReconciler{
 			Client:               mgr.GetClient(),
@@ -191,7 +192,7 @@ func main() {
 		}
 	}
 
-	if legacyMode == controller.LegacyWrite {
+	if startup.ClusterPolicy {
 		setupLog.Info("setting up ClusterPolicy controller")
 		if err = (&controller.ClusterPolicyReconciler{
 			Client:                      mgr.GetClient(),
@@ -208,7 +209,7 @@ func main() {
 		setupLog.Info("legacy PolicyExceptions not written; not starting the ClusterPolicy controller", "mode", legacyMode)
 	}
 
-	if len(chartOperatorExceptionKinds) != 0 {
+	if startup.ChartOperatorBypass {
 		setupLog.Info("setting up ChartOperatorBypass controller")
 		if err = (&controller.ChartOperatorBypassReconciler{
 			Client:    mgr.GetClient(),
