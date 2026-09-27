@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add `.golangci.yml` so `goconst` does not flag repeated fixture strings in table-driven tests.
 - Write a `policies.kyverno.io/v1` PolicyException next to the `kyverno.io/v2` one per Giant Swarm PolicyException, plus a CEL chart-operator bypass, so exceptions survive the move to ValidatingPolicy. The README describes how targets match. New `--legacy-exceptions` switch (Helm `policyOperator.legacyExceptions`); the operator starts without the legacy Kyverno CRDs. Adds migration metrics and a `monitoring.podMonitor`.
+- The CEL exception of a gspolex migrated by exception-recommender matches target names exactly as written, also for Pods, ReplicaSets and Jobs.
 - The CEL match conditions use optional field syntax, so they need Kubernetes 1.28 or newer wherever Kyverno generates ValidatingAdmissionPolicies.
 
 ## [0.2.3] - 2026-07-30

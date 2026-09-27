@@ -56,9 +56,10 @@ func unsupportedTargetKinds(targets []policyAPI.Target) []string {
 }
 
 // targetExpression matches the target kind by its name (see ownPatterns), and, unless bridge is set,
-// the kinds its controller creates by "<name>-" prefix, because those carry generated names. The kind uses Kyverno's format: "Kind", "version/Kind" or "group/version/Kind",
-// each part may be a wildcard, and "*" is any kind. Missing namespaces or names match any. It
-// reports false for a kind it cannot express.
+// the kinds its controller creates by "<name>-" prefix, because those carry generated names. The
+// kind uses Kyverno's format: "Kind", "version/Kind" or "group/version/Kind", each part may be a
+// wildcard, and "*" is any kind. Missing namespaces or names match any. It reports false for a kind
+// it cannot express.
 func targetExpression(target policyAPI.Target, bridge bool) (string, bool) {
 	group, version, kind, subresource := kubeutils.ParseKindSelector(target.Kind)
 	if kind == "" || subresource != "" {
@@ -66,7 +67,7 @@ func targetExpression(target policyAPI.Target, bridge bool) (string, bool) {
 	}
 	kinds := generateExceptionKinds(kind)
 	namespace := anyPattern(objectNamespace, target.Namespaces)
-	own := allOf(apiVersionPattern(group, version), kindPattern(kind), anyPattern(objectName, ownPatterns(kind, target.Names)))
+	own := allOf(apiVersionPattern(group, version), kindPattern(kind), anyPattern(objectName, ownPatterns(kind, target.Names, bridge)))
 	if bridge || len(kinds) == 1 {
 		return "(" + allOf(namespace, own) + ")", true
 	}
@@ -104,9 +105,10 @@ func apiVersionPattern(group, version string) string {
 
 // ownPatterns returns the patterns a target's names match for the target kind itself: the exact
 // name, or the user's wildcard pattern. Pods, ReplicaSets and Jobs usually carry generated names,
-// so their names use the legacy patterns: cut to 58 characters, with a trailing "*".
-func ownPatterns(kind string, names []string) []string {
-	if kind != KindPod && kind != KindReplicaSet && kind != KindJob {
+// so their names use the legacy patterns: cut to 58 characters, with a trailing "*". A bridge
+// keeps its names as written, because exception-recommender copied them from the legacy exception.
+func ownPatterns(kind string, names []string, bridge bool) []string {
+	if bridge || (kind != KindPod && kind != KindReplicaSet && kind != KindJob) {
 		return names
 	}
 	return formatNames(names)

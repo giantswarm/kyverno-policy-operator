@@ -99,7 +99,8 @@ It matches more strictly than the `kyverno.io/v2` one, which keeps the old `name
 
 - **Names.** Objects of the target kind match a name exactly, or the `*`/`?` wildcard pattern the
   user wrote. `Pod`, `ReplicaSet` and `Job` targets use the legacy patterns instead, because these
-  usually carry generated names: every name is cut to 58 characters and gets a trailing `*`.
+  usually carry generated names: every name is cut to 58 characters and gets a trailing `*`. Migrated
+  gspolexes are the exception (see below).
 - **Derived kinds.** The kinds a target's controller creates (ReplicaSet and Pod for a Deployment,
   Job and Pod for a CronJob, and Pod for any other kind but Pod) match the `<name>-` prefix, so a
   target `app-1` no longer covers the pods of `app-10`.
@@ -126,7 +127,7 @@ or newer wherever Kyverno turns ValidatingPolicies into ValidatingAdmissionPolic
 migrated only when it has both the `policy.giantswarm.io/migrated-from` annotation and the
 `app.kubernetes.io/managed-by: exception-recommender` label. Its targets already list every kind the
 legacy exception covered, so its CEL exception matches exactly those kinds and names, with no
-derived kinds. It gets no `kyverno.io/v2` PolicyException.
+derived kinds. Its names are kept as written, including for `Pod`, `ReplicaSet` and `Job` targets. It gets no `kyverno.io/v2` PolicyException.
 
 ### Labels and annotations
 

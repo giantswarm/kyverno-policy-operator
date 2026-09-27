@@ -175,21 +175,30 @@ func TestTargetsMatchConditions(t *testing.T) {
 // already list every kind the legacy exception covered, so no kinds are derived.
 func TestBridgeMatchConditions(t *testing.T) {
 	deployment := []policyAPI.Target{{Kind: "Deployment", Namespaces: []string{"default"}, Names: []string{"web"}}}
+	debugPod := []policyAPI.Target{{Kind: "Pod", Names: []string{"debug"}}}
+	debugPods := []policyAPI.Target{{Kind: "Pod", Names: []string{"debug-*"}}}
 	tests := []struct {
-		name   string
-		bridge bool
-		object any
-		want   bool
+		name    string
+		targets []policyAPI.Target
+		bridge  bool
+		object  any
+		want    bool
 	}{
-		{"bridge matches the deployment", true, obj("Deployment", "default", "web", ""), true},
-		{"bridge does not match the deployment's replicasets", true, obj("ReplicaSet", "default", "web-5d4f8", ""), false},
-		{"bridge does not match the deployment's pods", true, obj("Pod", "default", "", "web-5d4f8-"), false},
-		{"non-bridge matches the deployment's replicasets", false, obj("ReplicaSet", "default", "web-5d4f8", ""), true},
-		{"non-bridge matches the deployment's pods", false, obj("Pod", "default", "", "web-5d4f8-"), true},
+		{"bridge matches the deployment", deployment, true, obj("Deployment", "default", "web", ""), true},
+		{"bridge does not match the deployment's replicasets", deployment, true, obj("ReplicaSet", "default", "web-5d4f8", ""), false},
+		{"bridge does not match the deployment's pods", deployment, true, obj("Pod", "default", "", "web-5d4f8-"), false},
+		{"non-bridge matches the deployment's replicasets", deployment, false, obj("ReplicaSet", "default", "web-5d4f8", ""), true},
+		{"non-bridge matches the deployment's pods", deployment, false, obj("Pod", "default", "", "web-5d4f8-"), true},
+		{"bridge pod name is exact", debugPod, true, obj("Pod", "x", "debug", ""), true},
+		{"bridge pod name is not a prefix", debugPod, true, obj("Pod", "x", "debugger", ""), false},
+		{"bridge pod name does not match its generated names", debugPod, true, obj("Pod", "x", "debug-x", ""), false},
+		{"non-bridge pod name is a prefix", debugPod, false, obj("Pod", "x", "debugger", ""), true},
+		{"bridge pod glob is kept", debugPods, true, obj("Pod", "x", "debug-x", ""), true},
+		{"bridge pod glob is anchored", debugPods, true, obj("Pod", "x", "debug", ""), false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			conds := translateTargetsToMatchConditions(deployment, tt.bridge)
+			conds := translateTargetsToMatchConditions(tt.targets, tt.bridge)
 			if got := eval(t, conds, tt.object, nil); got != tt.want {
 				t.Errorf("got %v, want %v; expression: %s", got, tt.want, conds[0].Expression)
 			}
@@ -298,6 +307,14 @@ func TestTargetsMatchConditionsFormat(t *testing.T) {
     (` + name + ` == "web") ||
     (object.kind == "Pod" && ` + name + `.startsWith("web-"))
   )
+)`,
+		},
+		{
+			name:    "bridge pod",
+			targets: []policyAPI.Target{{Kind: "Pod", Names: []string{"debug", "debug-*"}}},
+			bridge:  true,
+			want: `object != null && (
+  (object.kind == "Pod" && (` + name + ` == "debug" || ` + name + `.startsWith("debug-")))
 )`,
 		},
 		{
