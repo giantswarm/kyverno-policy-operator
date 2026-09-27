@@ -101,7 +101,7 @@ func main() {
 		})
 	flag.IntVar(&maxJitterPercent, "max-jitter-percent", 10, "Spreads out re-queue interval by +/- this amount to spread load.")
 	flag.BoolVar(&legacyExceptions, "legacy-exceptions", true,
-		"Write kyverno.io/v2 PolicyExceptions next to the policies.kyverno.io ones. When false, the kyverno.io/v2 PolicyExceptions created by this operator are deleted. Ignored when the kyverno.io CRDs are not installed.")
+		"Write kyverno.io/v2 PolicyExceptions next to the policies.kyverno.io ones. When false, the kyverno.io/v2 PolicyExceptions generated from Giant Swarm PolicyExceptions and the legacy chart-operator bypass are deleted; those generated from PolicyManifests are not. Ignored when the kyverno.io CRDs are not installed.")
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 

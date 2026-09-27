@@ -75,7 +75,9 @@ policyOperator:
   # from fail to skip. Has no effect on the policies.kyverno.io PolicyExceptions.
   exceptionBackgroundMode: true
   # Also write kyverno.io/v2 PolicyExceptions. Set to false once all policies are CEL policies:
-  # the operator then deletes the kyverno.io/v2 PolicyExceptions it created.
+  # the operator then deletes the kyverno.io/v2 PolicyExceptions it generated from Giant Swarm
+  # PolicyExceptions, and the legacy chart-operator bypass. Those generated from PolicyManifests
+  # (gs-kpo-<name>-exceptions) are not deleted.
   legacyExceptions: true
   chartOperatorExceptionKinds:
     - PolicyException

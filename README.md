@@ -161,8 +161,11 @@ modes:
 
 - `write`: the flag is enabled and both legacy CRDs exist. `kyverno.io/v2` PolicyExceptions are
   written as before.
-- `cleanup`: both legacy CRDs exist but the flag is disabled. The per-gspolex `kyverno.io/v2`
-  PolicyExceptions the operator manages are deleted, along with the legacy chart-operator bypass.
+- `cleanup`: both legacy CRDs exist but the flag is disabled. The operator deletes the
+  `kyverno.io/v2` PolicyExceptions it generated from Giant Swarm PolicyExceptions, and the legacy
+  chart-operator bypass. It does not delete the ones generated from PolicyManifests
+  (`gs-kpo-<name>-exceptions`): the PolicyManifest controller only runs in `write` mode, so remove
+  those by hand.
 - `absent`: either legacy CRD is missing. The operator does not touch `kyverno.io/v2` at all and
   starts normally without them.
 
