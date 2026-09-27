@@ -82,6 +82,10 @@ PolicyException, both named after it:
   (`ValidatingPolicy`, `MutatingPolicy` or `ImageValidatingPolicy`); when no matching CEL policy
   exists yet, it falls back to `ValidatingPolicy` and the name is recorded as unresolved.
 
+Both are written in the destination namespace (`--destination-namespace`). A gspolex in any other
+namespace is skipped: it cannot own objects there, and would otherwise touch the exceptions of the
+gspolex with the same name in the destination namespace.
+
 When a ClusterPolicy is deleted, for example while it is being replaced, the `kyverno.io/v2`
 PolicyException keeps its entry for that policy, with the rules it had, until the ClusterPolicy is
 back. It is never deleted just because its ClusterPolicies are missing, only when legacy exceptions

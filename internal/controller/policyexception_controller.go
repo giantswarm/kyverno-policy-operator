@@ -89,6 +89,12 @@ func (r *PolicyExceptionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	} else {
 		namespace = r.DestinationNamespace
 	}
+	// A gspolex cannot own exceptions in another namespace, and must not delete the ones that belong
+	// to the same-name gspolex in the destination namespace.
+	if gsPolicyException.Namespace != namespace {
+		logger.Info("gspolex is not in the destination namespace, skipping", "destinationNamespace", namespace)
+		return ctrl.Result{}, nil
+	}
 
 	// Run both paths even if one fails: the legacy exception is what protects clusters today.
 	celErr := r.reconcileCEL(ctx, &gsPolicyException, namespace)
@@ -127,7 +133,7 @@ func generateExceptionKinds(resourceKind string) []string {
 // SetupWithManager sets up the controller with the Manager.
 func (r *PolicyExceptionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	b := ctrl.NewControllerManagedBy(mgr).For(&policyAPI.PolicyException{}).Owns(&policiesv1.PolicyException{})
-	if r.LegacyMode == LegacyWrite {
+	if PlanStartup(r.LegacyMode, false, nil).LegacyWatches {
 		// No predicate: status.autogen changes do not bump the ClusterPolicy's generation.
 		b = b.Owns(&kyvernov2.PolicyException{}).
 			Watches(&kyvernov1.ClusterPolicy{}, handler.EnqueueRequestsFromMapFunc(r.gspolexesForClusterPolicy))

@@ -10,6 +10,7 @@ import (
 	policiesv1 "github.com/kyverno/api/api/policies.kyverno.io/v1"
 	kyvernov2 "github.com/kyverno/kyverno/api/kyverno/v2"
 	"github.com/prometheus/client_golang/prometheus/testutil"
+	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -100,6 +101,33 @@ kyverno_policy_operator_policyexceptions{api="cel",source="gspolex"} 1
 	if err := testutil.CollectAndCompare(collector, strings.NewReader(expected)); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// When the CEL list fails, the CEL, dual and unresolved gauges are left out instead of reported as
+// 0, so alerts see missing data rather than no exceptions.
+func TestExceptionCollectorCELListFails(t *testing.T) {
+	// arrange
+	c := fake.NewClientBuilder().WithScheme(newScheme(t, policiesv1.Install, kyvernov2.Install)).WithObjects(
+		&policiesv1.PolicyException{ObjectMeta: managedMeta("a", SourceGSPolex, map[string]string{AnnotationUnresolvedPolicies: "p1"})},
+		&kyvernov2.PolicyException{ObjectMeta: managedMeta("a", SourceGSPolex, nil)},
+	).WithInterceptorFuncs(failList[*policiesv1.PolicyExceptionList](errors.New("CEL list failed"))).Build()
+	collector := &ExceptionCollector{Reader: c, LegacyMode: LegacyWrite, Log: logr.Discard()}
+	expected := `
+# HELP kyverno_policy_operator_legacy_exceptions_enabled Whether kyverno.io/v2 PolicyExceptions are being written (1) or not (0).
+# TYPE kyverno_policy_operator_legacy_exceptions_enabled gauge
+kyverno_policy_operator_legacy_exceptions_enabled 1
+# HELP kyverno_policy_operator_policyexceptions Generated Kyverno PolicyExceptions by API and source.
+# TYPE kyverno_policy_operator_policyexceptions gauge
+kyverno_policy_operator_policyexceptions{api="legacy",source="chart-operator"} 0
+kyverno_policy_operator_policyexceptions{api="legacy",source="exception-recommender"} 0
+kyverno_policy_operator_policyexceptions{api="legacy",source="gspolex"} 1
+`
+
+	// act
+	err := testutil.CollectAndCompare(collector, strings.NewReader(expected))
+
+	// assert
+	require.NoError(t, err)
 }
 
 // Without the legacy CRDs only the CEL gauges are reported, each at 0 when nothing was generated.
