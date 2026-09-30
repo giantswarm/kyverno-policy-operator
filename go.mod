@@ -118,15 +118,16 @@ require (
 	github.com/go-openapi/strfmt v0.26.2 // indirect
 	github.com/go-openapi/swag v0.26.0 // indirect
 	github.com/go-openapi/swag/cmdutils v0.26.0 // indirect
-	github.com/go-openapi/swag/conv v0.26.0 // indirect
+	github.com/go-openapi/swag/conv v0.29.2 // indirect
 	github.com/go-openapi/swag/fileutils v0.26.0 // indirect
 	github.com/go-openapi/swag/jsonname v0.26.0 // indirect
 	github.com/go-openapi/swag/jsonutils v0.26.0 // indirect
 	github.com/go-openapi/swag/loading v0.26.0 // indirect
 	github.com/go-openapi/swag/mangling v0.26.0 // indirect
 	github.com/go-openapi/swag/netutils v0.26.0 // indirect
+	github.com/go-openapi/swag/pools v0.29.2 // indirect
 	github.com/go-openapi/swag/stringutils v0.26.0 // indirect
-	github.com/go-openapi/swag/typeutils v0.26.0 // indirect
+	github.com/go-openapi/swag/typeutils v0.29.2 // indirect
 	github.com/go-openapi/swag/yamlutils v0.26.0 // indirect
 	github.com/go-openapi/validate v0.25.2 // indirect
 	github.com/go-piv/piv-go/v2 v2.5.0 // indirect
@@ -356,3 +357,5 @@ replace (
 replace github.com/mark3labs/mcp-go v0.43.2 => github.com/mark3labs/mcp-go v1.0.0
 
 replace github.com/sigstore/fulcio v1.8.5 => github.com/sigstore/fulcio v1.8.8
+
+replace github.com/go-openapi/swag/jsonutils v0.26.0 => github.com/go-openapi/swag/jsonutils v0.29.2
