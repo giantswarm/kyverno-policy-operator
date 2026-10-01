@@ -194,6 +194,15 @@
                             "type": "string"
                         }
                     }
+                },
+                "podMonitor": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        }
+                    }
                 }
             }
         },
@@ -248,7 +257,13 @@
                 "destinationNamespace": {
                     "type": "string"
                 },
+                "enablePolicyManifests": {
+                    "type": "boolean"
+                },
                 "exceptionBackgroundMode": {
+                    "type": "boolean"
+                },
+                "legacyExceptions": {
                     "type": "boolean"
                 }
             }
