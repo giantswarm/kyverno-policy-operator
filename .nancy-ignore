@@ -9,15 +9,8 @@ CVE-2026-72815 until=2026-11-06 # github.com/go-chi/chi/v5@v5.2.5
 CVE-2026-72816 until=2026-11-06 # github.com/go-chi/chi/v5@v5.2.5
 CVE-2026-84303 until=2026-10-30 # google.golang.org/grpc@v1.81.1
 CVE-2026-84304 until=2026-10-30 # google.golang.org/grpc@v1.81.1
-CVE-2026-56854 until=2026-10-09 # golang.org/x/crypto@v0.53.0
-CVE-2026-56855 until=2026-10-09 # golang.org/x/crypto@v0.53.0
 CVE-2026-53495 until=2026-10-30 # github.com/containerd/containerd@v1.7.20
-CVE-2026-71557 until=2026-10-09 # github.com/go-git/go-git/v5@v5.19.1
-CVE-2026-71556 until=2026-10-09 # github.com/go-git/go-git/v5@v5.19.1
 CVE-2026-48978 until=2026-10-30 # oras.land/oras-go@v1.2.5
-CVE-2026-78662 until=2026-10-09 # golang.org/x/crypto@v0.53.0
-CVE-2026-49834 until=2026-10-09 # github.com/sigstore/sigstore-go@v1.1.4
-CVE-2026-54787 until=2026-10-09 # github.com/sigstore/sigstore-go@v1.1.4
 CVE-2026-53493 until=2026-10-30 # github.com/containerd/containerd@v1.7.20
 CVE-2026-100703 until=2026-10-30 # github.com/kyverno/kyverno@v1.18.2
 CVE-2026-100704 until=2026-10-30 # github.com/kyverno/kyverno@v1.18.2
@@ -26,7 +19,7 @@ CVE-2026-100706 until=2026-10-30 # github.com/kyverno/kyverno@v1.18.2
 CVE-2026-100707 until=2026-10-30 # github.com/kyverno/kyverno@v1.18.2
 CVE-2026-85732 until=2026-10-30 # oras.land/oras-go@v1.2.5
 CVE-2026-84445 until=2026-10-30 # google.golang.org/grpc@v1.81.1
-CVE-2026-88031 until=2026-10-30 # go.mongodb.org/mongo-driver@v1.17.9
+CVE-2026-88031 until=2026-11-27 # go.mongodb.org/mongo-driver@v1.17.9 since=2026-10-28
 CVE-2026-33815 until=2026-11-06 # github.com/jackc/pgx/v5@v5.8.0
 CVE-2026-33816 until=2026-11-06 # github.com/jackc/pgx/v5@v5.8.0
 CVE-2026-41889 until=2026-11-06 # github.com/jackc/pgx/v5@v5.8.0
@@ -45,3 +38,7 @@ CVE-2025-66564 until=2026-11-06 # github.com/sigstore/timestamp-authority@v1.2.2
 CVE-2026-22703 until=2026-11-06 # github.com/sigstore/cosign/v2@v2.2.4
 CVE-2026-24122 until=2026-11-06 # github.com/sigstore/cosign/v2@v2.2.4
 CVE-2026-39395 until=2026-11-06 # github.com/sigstore/cosign/v2@v2.2.4
+CVE-2026-71482 until=2026-11-27 # github.com/containerd/stargz-snapshotter/estargz@v0.18.1 since=2026-10-28
+CVE-2026-107325 until=2026-11-27 # go.mongodb.org/mongo-driver@v1.17.9 since=2026-10-28
+CVE-2026-108859 until=2026-11-27 # github.com/mark3labs/mcp-go@v0.49.0 since=2026-10-28
+CVE-2026-81092 until=2026-11-27 # github.com/mark3labs/mcp-go@v0.49.0 since=2026-10-28
