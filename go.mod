@@ -3,7 +3,7 @@ module github.com/giantswarm/kyverno-policy-operator
 go 1.26.9
 
 require (
-	github.com/giantswarm/policy-api v0.1.12
+	github.com/giantswarm/policy-api v0.1.13
 	github.com/go-logr/logr v1.4.4
 	github.com/google/uuid v1.6.0
 	github.com/kyverno/kyverno v1.19.2
