@@ -1,44 +1,7 @@
-CVE-2024-40635 until=2026-10-30 # github.com/containerd/containerd@v1.7.20
-CVE-2025-47290 until=2026-10-30 # github.com/containerd/containerd@v1.7.20
-CVE-2025-47291 until=2026-10-30 # github.com/containerd/containerd@v1.7.20
-CVE-2025-64329 until=2026-10-30 # github.com/containerd/containerd@v1.7.20
-CVE-2026-47262 until=2026-10-30 # github.com/containerd/containerd@v1.7.20
-CVE-2026-53488 until=2026-10-30 # github.com/containerd/containerd@v1.7.20
-CVE-2024-25621 until=2026-10-30 # github.com/containerd/containerd@v1.7.20
-CVE-2026-72815 until=2026-11-06 # github.com/go-chi/chi/v5@v5.2.5
-CVE-2026-72816 until=2026-11-06 # github.com/go-chi/chi/v5@v5.2.5
-CVE-2026-84303 until=2026-10-30 # google.golang.org/grpc@v1.81.1
-CVE-2026-84304 until=2026-10-30 # google.golang.org/grpc@v1.81.1
-CVE-2026-53495 until=2026-10-30 # github.com/containerd/containerd@v1.7.20
-CVE-2026-48978 until=2026-10-30 # oras.land/oras-go@v1.2.5
-CVE-2026-53493 until=2026-10-30 # github.com/containerd/containerd@v1.7.20
-CVE-2026-100703 until=2026-10-30 # github.com/kyverno/kyverno@v1.18.2
-CVE-2026-100704 until=2026-10-30 # github.com/kyverno/kyverno@v1.18.2
-CVE-2026-100705 until=2026-10-30 # github.com/kyverno/kyverno@v1.18.2
-CVE-2026-100706 until=2026-10-30 # github.com/kyverno/kyverno@v1.18.2
-CVE-2026-100707 until=2026-10-30 # github.com/kyverno/kyverno@v1.18.2
-CVE-2026-85732 until=2026-10-30 # oras.land/oras-go@v1.2.5
-CVE-2026-84445 until=2026-10-30 # google.golang.org/grpc@v1.81.1
 CVE-2026-88031 until=2026-11-27 # go.mongodb.org/mongo-driver@v1.17.9 since=2026-10-28
-CVE-2026-33815 until=2026-11-06 # github.com/jackc/pgx/v5@v5.8.0
-CVE-2026-33816 until=2026-11-06 # github.com/jackc/pgx/v5@v5.8.0
-CVE-2026-41889 until=2026-11-06 # github.com/jackc/pgx/v5@v5.8.0
-CVE-2026-56864 until=2026-11-06 # golang.org/x/mod@v0.38.0
-CVE-2026-56865 until=2026-11-06 # golang.org/x/mod@v0.38.0
-CVE-2026-81870 until=2026-11-06 # go.opentelemetry.io/otel/sdk@v1.44.0
-CVE-2026-59818 until=2026-11-06 # go.etcd.io/etcd/v3@v3.6.12
-CVE-2026-73500 until=2026-11-06 # go.etcd.io/etcd/v3@v3.6.12
-CVE-2023-37264 until=2026-11-06 # github.com/tektoncd/pipeline@v0.58.0
-CVE-2026-25542 until=2026-11-06 # github.com/tektoncd/pipeline@v0.58.0
-CVE-2026-40923 until=2026-11-06 # github.com/tektoncd/pipeline@v0.58.0
-CVE-2026-40924 until=2026-11-06 # github.com/tektoncd/pipeline@v0.58.0
-CVE-2021-43668 until=2026-11-06 # github.com/syndtr/goleveldb@v1.0.1-0.20220721030215-126854af5e6d
-CVE-2026-49835 until=2026-11-06 # github.com/sigstore/timestamp-authority@v1.2.2
-CVE-2025-66564 until=2026-11-06 # github.com/sigstore/timestamp-authority@v1.2.2
-CVE-2026-22703 until=2026-11-06 # github.com/sigstore/cosign/v2@v2.2.4
-CVE-2026-24122 until=2026-11-06 # github.com/sigstore/cosign/v2@v2.2.4
-CVE-2026-39395 until=2026-11-06 # github.com/sigstore/cosign/v2@v2.2.4
 CVE-2026-71482 until=2026-11-27 # github.com/containerd/stargz-snapshotter/estargz@v0.18.1 since=2026-10-28
 CVE-2026-107325 until=2026-11-27 # go.mongodb.org/mongo-driver@v1.17.9 since=2026-10-28
 CVE-2026-108859 until=2026-11-27 # github.com/mark3labs/mcp-go@v0.49.0 since=2026-10-28
 CVE-2026-81092 until=2026-11-27 # github.com/mark3labs/mcp-go@v0.49.0 since=2026-10-28
+CVE-2026-122132 until=2026-12-11 # github.com/go-chi/chi/v5@v5.5.0 since=2026-11-11
+CVE-2021-43668 until=2026-12-11 # github.com/syndtr/goleveldb@v1.0.1-0.20220721030215-126854af5e6d since=2026-11-11
